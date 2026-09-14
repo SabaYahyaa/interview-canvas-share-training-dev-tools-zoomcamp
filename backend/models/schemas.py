@@ -1,25 +1,40 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Literal, Optional, Union
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_camel
 
-# --- Core Entities from frontend/src/lib/api/types.ts ---
 
-class User(BaseModel):
+# --- Base Model for Automatic CamelCase Serialization ---
+
+class CamelModel(BaseModel):
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+        serialize_by_alias=True,
+    )
+
+
+# --- Core Entities ---
+
+class User(CamelModel):
     id: UUID
     email: str
     display_name: str
     avatar_url: Optional[str] = None
-    hashed_password: str # Added for backend User model
+    hashed_password: str
+
 
 class Role(BaseModel):
     __root__: Literal["owner", "interviewer", "candidate"]
 
+
 class GuestRole(BaseModel):
     __root__: Literal["interviewer", "candidate"]
 
-class CanvasElement(BaseModel):
+
+class CanvasElement(CamelModel):
     id: str
     type: str
     x: float
@@ -28,36 +43,38 @@ class CanvasElement(BaseModel):
     height: float
     text: Optional[str] = None
     color: Optional[str] = None
-    # Add other properties as needed based on frontend usage
 
-class CanvasDocument(BaseModel):
-    elements: List[CanvasElement]
 
-class Cursor(BaseModel):
+class CanvasDocument(CamelModel):
+    elements: List[CanvasElement] = []
+
+
+class Cursor(CamelModel):
     x: float
     y: float
 
-class Participant(BaseModel):
+
+class Participant(CamelModel):
     id: UUID
     session_id: UUID
     user_id: Optional[UUID] = None
     display_name: str
-    role: Role
+    role: Literal["owner", "interviewer", "candidate"]
     joined_at: datetime
     last_seen_at: datetime
     is_present: bool = True
-    # Frontend also has 'cursor' on Participant for presence updates, but it's often null.
-    # We'll handle cursor updates as separate WebSocket messages.
 
-class GuestLink(BaseModel):
+
+class GuestLink(CamelModel):
     id: UUID
     session_id: UUID
-    role_granted: GuestRole
+    role_granted: Literal["interviewer", "candidate"]
     created_at: datetime
     expires_at: Optional[datetime] = None
     token: str
 
-class InterviewSession(BaseModel):
+
+class InterviewSession(CamelModel):
     id: UUID
     owner_id: UUID
     title: str
@@ -65,105 +82,132 @@ class InterviewSession(BaseModel):
     created_at: datetime
     updated_at: datetime
     scheduled_at: Optional[datetime] = None
-    duration_minutes: int
-    status: Literal["draft", "scheduled", "live", "ended", "archived"]
+    duration_minutes: int = 0
+    status: Literal["draft", "scheduled", "live", "ended", "archived"] = "draft"
+
+    # Time fields required by frontend reportAllChanges & room timer
+    start_time: Optional[datetime] = Field(
+        default_factory=lambda: datetime.now(timezone.utc), alias="startTime"
+    )
+    started_at: Optional[datetime] = Field(
+        default_factory=lambda: datetime.now(timezone.utc), alias="startedAt"
+    )
+
 
 class SessionListItem(InterviewSession):
     participants: List[Participant] = []
     link: Optional[GuestLink] = None
 
-class SessionDetail(BaseModel):
+
+class SessionDetail(CamelModel):
     session: InterviewSession
-    participants: List[Participant]
+    participants: List[Participant] = []
     link: Optional[GuestLink] = None
 
-class AuditEvent(BaseModel):
+
+class AuditEvent(CamelModel):
     id: UUID
     session_id: UUID
     event: str
     at: datetime
     actor: str
 
+
 # --- Authentication Models ---
 
-class LoginRequest(BaseModel):
+class LoginRequest(CamelModel):
     email: str
     password: str
 
-class TokenResponse(BaseModel):
+
+class TokenResponse(CamelModel):
     access_token: str
     token_type: Literal["bearer"] = "bearer"
     user: User
 
-class TokenData(BaseModel):
+
+class TokenData(CamelModel):
     username: Optional[str] = None
     scopes: List[str] = []
 
+
 # --- Session Models ---
 
-class CreateSessionRequest(BaseModel):
+class CreateSessionRequest(CamelModel):
     title: str
     prompt: str
-    duration_minutes: int
+    duration_minutes: int = 0
     scheduled_at: Optional[datetime] = None
 
-class UpdateSessionPatch(BaseModel):
+
+class UpdateSessionPatch(CamelModel):
     title: Optional[str] = None
     prompt: Optional[str] = None
     duration_minutes: Optional[int] = None
     scheduled_at: Optional[datetime] = None
     status: Optional[Literal["draft", "scheduled", "live", "ended", "archived"]] = None
 
+
 # --- Guest Access Models ---
 
-class CreateGuestLinkRequest(BaseModel):
-    role_granted: GuestRole = Field(default="candidate")
+class CreateGuestLinkRequest(CamelModel):
+    role_granted: Literal["interviewer", "candidate"] = "candidate"
 
-class TokenInspection(BaseModel):
+
+class TokenInspection(CamelModel):
     session: InterviewSession
     link: GuestLink
-    activeCount: int = 0
+    active_count: int = Field(default=0, alias="activeCount")
 
-class JoinRequest(BaseModel):
+
+class JoinRequest(CamelModel):
     display_name: str
 
-class JoinResponse(BaseModel):
+
+class JoinResponse(CamelModel):
     participant: Participant
     session: InterviewSession
+
 
 # --- Canvas Models ---
 
-class SaveCanvasRequest(BaseModel):
-    elements: List[CanvasElement]
+class SaveCanvasRequest(CamelModel):
+    elements: List[CanvasElement] = []
     actor: str
 
-# --- WebSocket / Real-time Communication Models (RoomMessage from frontend/src/lib/api/api.ts) ---
 
-class DocumentUpdateMessage(BaseModel):
+# --- WebSocket / Real-time Communication Models ---
+
+class DocumentUpdateMessage(CamelModel):
     type: Literal["document_update"] = "document_update"
-    sessionId: UUID
-    elements: List[CanvasElement]
+    session_id: UUID = Field(alias="sessionId")
+    elements: List[CanvasElement] = []
     actor: str
 
-class PresenceUpdateMessage(BaseModel):
+
+class PresenceUpdateMessage(CamelModel):
     type: Literal["presence_update"] = "presence_update"
-    sessionId: UUID
+    session_id: UUID = Field(alias="sessionId")
     participant: Participant
     cursor: Optional[Cursor] = None
 
-class PresenceLeaveMessage(BaseModel):
-    type: Literal["presence_leave"] = "presence_leave"
-    sessionId: UUID
-    participantId: UUID
 
-class PermissionChangedMessage(BaseModel):
+class PresenceLeaveMessage(CamelModel):
+    type: Literal["presence_leave"] = "presence_leave"
+    session_id: UUID = Field(alias="sessionId")
+    participant_id: UUID = Field(alias="participantId")
+
+
+class PermissionChangedMessage(CamelModel):
     type: Literal["permission_changed"] = "permission_changed"
-    sessionId: UUID
+    session_id: UUID = Field(alias="sessionId")
     session: InterviewSession
 
-class SessionEndedMessage(BaseModel):
+
+class SessionEndedMessage(CamelModel):
     type: Literal["session_ended"] = "session_ended"
-    sessionId: UUID
+    session_id: UUID = Field(alias="sessionId")
+
 
 RoomMessage = Union[
     DocumentUpdateMessage,
@@ -173,9 +217,9 @@ RoomMessage = Union[
     SessionEndedMessage,
 ]
 
+
 # --- Error Models ---
 
-class ApiErrorBody(BaseModel):
+class ApiErrorBody(CamelModel):
     code: Optional[str] = None
     message: Optional[str] = None
-

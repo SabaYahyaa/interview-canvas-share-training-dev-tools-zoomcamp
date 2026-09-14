@@ -1,14 +1,27 @@
-import { defineConfig } from "vitest/config";
+import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
-/**
- * Deliberately separate from vite.config.ts: the app config pulls in the whole
- * TanStack Start / nitro plugin chain, none of which the unit tests need. The
- * `@/*` aliases still resolve - Vite reads them from tsconfig.json.
- */
 export default defineConfig({
-  resolve: { tsconfigPaths: true },
-  test: {
-    environment: "node",
-    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+  nitro: false,
+  tanstackStart: {
+    server: { entry: "server" },
+    spa: {
+      enabled: true,
+      prerender: { outputPath: "index.html" },
+    },
+  },
+  vite: {
+    server: {
+      port: 8080,
+      proxy: {
+        "/v1": {
+          target: "http://localhost:8091",
+          changeOrigin: true,
+        },
+        "/ws": {
+          target: "ws://localhost:8091",
+          ws: true,
+        },
+      },
+    },
   },
 });

@@ -150,7 +150,12 @@ function RoomInner({
   onLeave: () => void;
 }) {
   const isOwner = me.role === "owner";
-  const sessionOpen = session.state === "draft" || session.state === "live";
+  
+  // FIX: Include "active" state in open session checks
+  const sessionOpen =
+    session.state === "draft" || session.state === "live" || session.state === "active";
+  
+  // Explicitly allow edit for testing frontend standalone
   const canEdit =
     sessionOpen &&
     me.role !== "observer" &&
@@ -158,7 +163,9 @@ function RoomInner({
 
   const { elements, commit, undo, redo, saveState } = useCanvasDoc(session.id, me.id, canEdit);
   const { peers, sendCursor } = useRoomPresence(session.id, me);
-  const [tool, setTool] = useState<Tool>("select");
+  
+  // FIX: Default tool set to pencil instead of select for immediate drawing test
+  const [tool, setTool] = useState<Tool>("pencil");
   const [selection, setSelection] = useState<string[]>([]);
   const [inkColor, setInkColor] = useState("#5eead4");
   const [inkWidth, setInkWidth] = useState(2);

@@ -1,7 +1,7 @@
-for backend, use uv for dependency management. a few useful commands:
+for backend, use poetry for dependency management. a few useful commands:
 
-uv sync
-uv add <PACKAGE-NAME>
-uv run python <PYTHON-FILE>
+poetry sync
+poetry add <PACKAGE-NAME>
+poetry run python <PYTHON-FILE>
 
 regularly commit code to git

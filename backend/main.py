@@ -562,3 +562,4 @@ async def room_websocket(websocket: WebSocket, session_id: str):
             await ws_manager.broadcast(session_id, data, sender=websocket)
     except WebSocketDisconnect:
         ws_manager.disconnect(session_id, websocket)
+

@@ -35,6 +35,7 @@ def seed_default_user(db_session):
     user = UserModel(
         id="user-123",
         email="dev@example.com",
+        name="Avery Dev",
         display_name="Avery Dev",
     )
     db_session.add(user)

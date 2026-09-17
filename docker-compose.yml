@@ -3,6 +3,7 @@
 # docker-compose up --build -d
 # then: docker compose ps
 # docker compose logs web
+# run the test:  docker compose exec web pytest -v
 
 networks:
   app-network:

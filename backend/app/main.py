@@ -1,12 +1,13 @@
 import os
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.routers.sessions import router as sessions_router
-from contextlib import asynccontextmanager
 from app.database import init_db
+from app.routers import guest, sessions
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -14,7 +15,9 @@ async def lifespan(app: FastAPI):
     init_db()
     yield
 
+
 app = FastAPI(title="Interviewer Canvas API", lifespan=lifespan)
+
 # Enable CORS for local testing
 app.add_middleware(
     CORSMiddleware,
@@ -24,13 +27,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API Router
-app.include_router(sessions_router)
+# Include API Routers
+app.include_router(sessions.router)
+app.include_router(guest.router)
 
 # ==========================================
 # STATIC FILES & SPA FALLBACK
 # ==========================================
-# Resolve static directory across common Docker/Local project structures
 POSSIBLE_STATIC_DIRS = [
     os.path.abspath("static"),
     os.path.abspath("static/client"),
@@ -54,7 +57,8 @@ if STATIC_DIR:
     elif os.path.exists(STATIC_DIR):
         app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-@app.api_route("/{full_path:path}", methods=["GET"])
+
+@app.get("/{full_path:path}")
 async def serve_spa(request: Request, full_path: str):
     # Pass-through for API, WebSockets, and Swagger docs
     if (
@@ -72,7 +76,7 @@ async def serve_spa(request: Request, full_path: str):
     if os.path.isfile(file_path):
         return FileResponse(file_path)
 
-    # Single-Page Application (SPA) fallback for /room/{session_id} or other frontend routes
+    # Single-Page Application (SPA) fallback
     index_file = os.path.join(STATIC_DIR, "index.html")
     if os.path.exists(index_file):
         return FileResponse(index_file)

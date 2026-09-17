@@ -16,6 +16,11 @@ router = APIRouter(tags=["Guest Links & WebSockets"])
 async def create_guest_link(
     session_id: str, payload: dict = None, db: Session = Depends(get_db)
 ):
+    # Validate session existence
+    session = db.query(InterviewSessionModel).filter_by(id=session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
     role = payload.get("role_granted", "candidate") if payload else "candidate"
     token = str(uuid4())[:8]
 

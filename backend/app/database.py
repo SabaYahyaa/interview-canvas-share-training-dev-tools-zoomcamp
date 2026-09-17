@@ -23,3 +23,23 @@ def get_db():
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def init_db():
+    # Import models inside function or at top level to ensure tables are registered
+    from app.models import UserModel
+
+    # Create all database tables if they don't exist yet
+    Base.metadata.create_all(bind=engine)
+
+    # Seed default host user required by routes
+    db = SessionLocal()
+    try:
+        user = db.query(UserModel).filter_by(id="user-123").first()
+        if not user:
+            db.add(
+                UserModel(id="user-123", name="Interviewer", email="host@example.com")
+            )
+            db.commit()
+    finally:
+        db.close()

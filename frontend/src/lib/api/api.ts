@@ -8,8 +8,26 @@ import type {
   User,
 } from "./types";
 
-const API_BASE = "http://localhost:8091";
-const WS_BASE = "ws://localhost:8091";
+// Dynamically resolve API and WebSocket bases for local & production deployments
+const getApiBase = () => {
+  const envApi = typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL;
+  if (envApi) return envApi.replace(/\/$/, "");
+  if (typeof window !== "undefined") return window.location.origin;
+  return "";
+};
+
+const getWsBase = () => {
+  const envWs = typeof import.meta !== "undefined" && import.meta.env?.VITE_WS_URL;
+  if (envWs) return envWs.replace(/\/$/, "");
+  if (typeof window !== "undefined") {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    return `${protocol}//${window.location.host}`;
+  }
+  return "";
+};
+
+const API_BASE = getApiBase();
+const WS_BASE = getWsBase();
 
 export type RoomMessage =
   | { type: "document_update"; sessionId: string; elements: CanvasElement[]; actor: string }
@@ -57,7 +75,10 @@ async function request<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const safePath = typeof path === "string" ? path : "";
-  const url = `${API_BASE}${safePath}`;
+  const formattedPath = safePath.startsWith("/") ? safePath : `/${safePath}`;
+  
+  // Guarantees clean relative resolution (/v1/...) when API_BASE is empty
+  const url = API_BASE ? `${API_BASE}${formattedPath}` : formattedPath;
 
   const res = await fetch(url, {
     ...options,
@@ -72,7 +93,16 @@ async function request<T>(
     throw new Error(errorBody.detail || `Request failed with status ${res.status}`);
   }
 
-  return res.json() as Promise<T>;
+  const json = await res.json();
+  return json as T;
+}
+
+// Helper to sanitize session IDs and prevent routing to /undefined
+function validateId(id: string, paramName: string = "id"): string {
+  if (!id || id === "undefined" || id === "null" || id.trim() === "") {
+    throw new Error(`Invalid ${paramName} provided: "${id}"`);
+  }
+  return encodeURIComponent(id);
 }
 
 // --- REALTIME WEBSOCKET MANAGEMENT ---
@@ -116,7 +146,6 @@ function connectWebSocket(sessionId: string, room: RoomConnection) {
   ws.onclose = () => {
     setConnectionState(room, "reconnecting");
     room.socket = null;
-    // Automatic reconnect after 2s
     setTimeout(() => {
       if (rooms.has(sessionId)) {
         connectWebSocket(sessionId, room);
@@ -185,66 +214,96 @@ export function subscribeConnection(sessionId: string, handler: (state: Connecti
 export const api = {
   getCurrentUser: () => request<User>("/v1/me"),
   listSessions: () => request<SessionListItem[]>("/v1/sessions"),
-  getSession: (id: string) => request<SessionDetail>(`/v1/sessions/${encodeURIComponent(id)}`),
-  createSession: (input: {
+  
+  getSession: (id: string) => 
+    request<SessionDetail>(`/v1/sessions/${validateId(id)}`),
+  
+  createSession: async (input: {
     title: string;
     prompt: string;
     duration_minutes: number;
     scheduled_at: string | null;
-  }) => request<InterviewSession>("/v1/sessions", { method: "POST", body: JSON.stringify(input) }),
+  }): Promise<InterviewSession> => {
+    const rawResponse = await request<any>("/v1/sessions", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+
+    // Extract InterviewSession if response is wrapped as { session: {...} } or { data: {...} }
+    const session: InterviewSession = rawResponse?.session ?? rawResponse?.data ?? rawResponse;
+    if (!session || !session.id) {
+      throw new Error("Backend response from POST /v1/sessions is missing a valid session 'id'.");
+    }
+    return session;
+  },
+
   updateSession: (id: string, patch: Partial<InterviewSession>) =>
-    request<InterviewSession>(`/v1/sessions/${encodeURIComponent(id)}`, {
+    request<InterviewSession>(`/v1/sessions/${validateId(id)}`, {
       method: "PATCH",
       body: JSON.stringify(patch),
     }),
+
   startSession: (id: string) =>
-    request<InterviewSession>(`/v1/sessions/${encodeURIComponent(id)}/start`, { method: "POST" }),
+    request<InterviewSession>(`/v1/sessions/${validateId(id)}/start`, { method: "POST" }),
+
   endSession: (id: string) =>
-    request<InterviewSession>(`/v1/sessions/${encodeURIComponent(id)}/end`, { method: "POST" }),
+    request<InterviewSession>(`/v1/sessions/${validateId(id)}/end`, { method: "POST" }),
+
   archiveSession: (id: string) =>
-    request<InterviewSession>(`/v1/sessions/${encodeURIComponent(id)}/archive`, { method: "POST" }),
+    request<InterviewSession>(`/v1/sessions/${validateId(id)}/archive`, { method: "POST" }),
+
   duplicateSession: (id: string) =>
-    request<InterviewSession>(`/v1/sessions/${encodeURIComponent(id)}/duplicate`, {
+    request<InterviewSession>(`/v1/sessions/${validateId(id)}/duplicate`, {
       method: "POST",
     }),
+
   createGuestLink: (id: string, role_granted: Exclude<Role, "owner"> = "candidate") =>
-    request<GuestLink>(`/v1/sessions/${encodeURIComponent(id)}/guest-links`, {
+    request<GuestLink>(`/v1/sessions/${validateId(id)}/guest-links`, {
       method: "POST",
       body: JSON.stringify({ role_granted }),
     }),
+
   revokeGuestLink: (id: string, linkId: string) =>
     request<boolean>(
-      `/v1/sessions/${encodeURIComponent(id)}/guest-links/${encodeURIComponent(linkId)}`,
+      `/v1/sessions/${validateId(id)}/guest-links/${validateId(linkId, "linkId")}`,
       { method: "DELETE" }
     ),
+
   inspectToken: (token: string) =>
-    request<TokenInspection>(`/v1/join/${encodeURIComponent(token)}`),
+    request<TokenInspection>(`/v1/join/${validateId(token, "token")}`),
+
   join: (token: string, display_name: string) =>
     request<{ participant: Participant; session: InterviewSession }>(
-      `/v1/join/${encodeURIComponent(token)}`,
+      `/v1/join/${validateId(token, "token")}`,
       { method: "POST", body: JSON.stringify({ display_name }) }
     ),
+
   joinAsOwner: (sessionId: string) =>
-    request<Participant>(`/v1/sessions/${encodeURIComponent(sessionId)}/participants`, {
+    request<Participant>(`/v1/sessions/${validateId(sessionId)}/participants`, {
       method: "POST",
     }),
+
   removeParticipant: (sessionId: string, participantId: string) =>
     request<boolean>(
-      `/v1/sessions/${encodeURIComponent(sessionId)}/participants/${encodeURIComponent(participantId)}`,
+      `/v1/sessions/${validateId(sessionId)}/participants/${validateId(participantId, "participantId")}`,
       { method: "DELETE" }
     ),
+
   leave: (sessionId: string, participantId: string) =>
     request<boolean>(
-      `/v1/sessions/${encodeURIComponent(sessionId)}/participants/${encodeURIComponent(participantId)}`,
+      `/v1/sessions/${validateId(sessionId)}/participants/${validateId(participantId, "participantId")}`,
       { method: "DELETE" }
     ),
+
   getCanvas: (sessionId: string) =>
-    request<CanvasDocument>(`/v1/sessions/${encodeURIComponent(sessionId)}/canvas`),
+    request<CanvasDocument>(`/v1/sessions/${validateId(sessionId)}/canvas`),
+
   saveCanvas: (sessionId: string, elements: CanvasElement[], actor: string) =>
-    request<string>(`/v1/sessions/${encodeURIComponent(sessionId)}/canvas`, {
+    request<string>(`/v1/sessions/${validateId(sessionId)}/canvas`, {
       method: "PUT",
       body: JSON.stringify({ elements, actor }),
     }),
+
   getAudit: (sessionId: string) =>
-    request<AuditEvent[]>(`/v1/sessions/${encodeURIComponent(sessionId)}/audit`),
+    request<AuditEvent[]>(`/v1/sessions/${validateId(sessionId)}/audit`),
 };

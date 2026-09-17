@@ -1,4 +1,5 @@
 import json
+import random
 from typing import Any, Dict, List
 from uuid import uuid4
 
@@ -25,13 +26,15 @@ from app.websockets import ws_manager
 
 router = APIRouter(prefix="/v1", tags=["Sessions & Canvas"])
 
+AVATAR_COLORS = ["#5eead4", "#f43f5e", "#3b82f6", "#a855f7", "#eab308", "#22c55e"]
+
 
 @router.get("/me", response_model=UserSchema)
 async def get_current_user(db: Session = Depends(get_db)):
     user = db.query(UserModel).filter_by(id="user-123").first()
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, # 404
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
     return user
@@ -69,8 +72,9 @@ async def create_session(req: CreateSessionRequest, db: Session = Depends(get_db
         id=str(uuid4()),
         session_id=new_id,
         user_id="user-123",
-        display_name="Avery Dev",
+        display_name="Interviewer (Host)",
         role="owner",
+        color="#5eead4",
     )
     db.add(owner)
 
@@ -163,13 +167,36 @@ async def join_as_owner(session_id: str, db: Session = Depends(get_db)):
             id=str(uuid4()),
             session_id=session_id,
             user_id="user-123",
-            display_name="Avery Dev",
+            display_name="Interviewer (Host)",
             role="owner",
+            color="#5eead4",
         )
         db.add(owner)
         db.commit()
         db.refresh(owner)
-    return owner
+    return ParticipantSchema.model_validate(owner)
+
+
+@router.post("/sessions/{session_id}/join-guest")
+async def join_as_guest(
+    session_id: str, display_name: str = "Candidate", db: Session = Depends(get_db)
+):
+    session = db.query(InterviewSessionModel).filter_by(id=session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    guest = ParticipantModel(
+        id=str(uuid4()),
+        session_id=session_id,
+        user_id=None,
+        display_name=display_name,
+        role="candidate",
+        color=random.choice(AVATAR_COLORS),
+    )
+    db.add(guest)
+    db.commit()
+    db.refresh(guest)
+    return ParticipantSchema.model_validate(guest)
 
 
 @router.delete("/sessions/{session_id}/participants/{participant_id}")
@@ -241,5 +268,16 @@ async def save_canvas(
 
 
 @router.get("/sessions/{session_id}/audit")
-async def get_audit(session_id: str):
-    return []
+async def get_audit(session_id: str, db: Session = Depends(get_db)):
+    canvas = db.query(CanvasDocumentModel).filter_by(session_id=session_id).first()
+    if not canvas:
+        return []
+    return [
+        {
+            "timestamp": canvas.updated_at.isoformat()
+            if canvas.updated_at
+            else utc_now().isoformat(),
+            "elements": json.loads(canvas.elements_json),
+            "version": canvas.version,
+        }
+    ]

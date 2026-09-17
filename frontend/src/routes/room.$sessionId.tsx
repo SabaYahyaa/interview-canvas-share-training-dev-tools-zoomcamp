@@ -83,38 +83,81 @@ function Room() {
   const { data, isLoading, error } = useSessionQuery(sessionId);
   const [me, setMe] = useState<Participant | null>(null);
   const [session, setSession] = useState<InterviewSession | null>(null);
+  const [initError, setInitError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (data?.session) setSession(data.session);
+    if (data?.session) {
+      setSession(data.session);
+    }
   }, [data?.session]);
 
-  // Guest identity established in the lobby; otherwise join as the owner.
+  // Establish identity: Check sessionStorage or call joinAsOwner ONLY after session query succeeds
   useEffect(() => {
-    const raw = typeof window !== "undefined" ? sessionStorage.getItem(`sdip.me.${sessionId}`) : null;
-    if (raw) {
-      setMe(JSON.parse(raw) as Participant);
-      return;
+    let isMounted = true;
+
+    async function initIdentity() {
+      const raw = typeof window !== "undefined" ? sessionStorage.getItem(`sdip.me.${sessionId}`) : null;
+      if (raw) {
+        setMe(JSON.parse(raw) as Participant);
+        return;
+      }
+
+      if (data?.session) {
+        try {
+          const participant = await api.joinAsOwner(sessionId);
+          if (isMounted) {
+            setMe(participant);
+          }
+        } catch (err) {
+          if (isMounted) {
+            console.error("Failed to join as owner:", err);
+            setInitError((err as Error).message || "Failed to join session room.");
+          }
+        }
+      }
     }
-    api.joinAsOwner(sessionId).then(setMe);
+
+    initIdentity();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [sessionId, data?.session]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    const unsubscribe = subscribe(sessionId, (msg) => {
+      if (msg.type === "permission_changed") setSession(msg.session);
+      if (msg.type === "session_ended") {
+        setSession((s) => (s ? { ...s, state: "ended" } : s));
+        toast.info("The interviewer ended this session. The canvas is now read-only.");
+      }
+    });
+    return () => {
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
   }, [sessionId]);
 
-  useEffect(
-    () =>
-      subscribe(sessionId, (msg) => {
-        if (msg.type === "permission_changed") setSession(msg.session);
-        if (msg.type === "session_ended") {
-          setSession((s) => (s ? { ...s, state: "ended" } : s));
-          toast.info("The interviewer ended this session. The canvas is now read-only.");
-        }
-      }),
-    [sessionId],
-  );
-
-  if (isLoading || !session || !me) {
+  if (isLoading || (data?.session && !me)) {
     return <Centered>Loading interview…</Centered>;
   }
-  if (error) {
-    return <Centered>{(error as Error).message}</Centered>;
+
+  if (error || initError) {
+    const errorMsg = initError || (error as Error)?.message || "Session not found";
+    return (
+      <Centered>
+        <div className="flex flex-col items-center gap-3">
+          <p>{errorMsg}</p>
+          <Button variant="outline" onClick={() => navigate({ to: "/" })}>
+            Return to Dashboard
+          </Button>
+        </div>
+      </Centered>
+    );
+  }
+
+  if (!session || !me) {
+    return <Centered>Loading interview…</Centered>;
   }
 
   return (
@@ -151,11 +194,9 @@ function RoomInner({
 }) {
   const isOwner = me.role === "owner";
   
-  // FIX: Include "active" state in open session checks
   const sessionOpen =
     session.state === "draft" || session.state === "live" || session.state === "active";
   
-  // Explicitly allow edit for testing frontend standalone
   const canEdit =
     sessionOpen &&
     me.role !== "observer" &&
@@ -164,7 +205,6 @@ function RoomInner({
   const { elements, commit, undo, redo, saveState } = useCanvasDoc(session.id, me.id, canEdit);
   const { peers, sendCursor } = useRoomPresence(session.id, me);
   
-  // FIX: Default tool set to pencil instead of select for immediate drawing test
   const [tool, setTool] = useState<Tool>("pencil");
   const [selection, setSelection] = useState<string[]>([]);
   const [inkColor, setInkColor] = useState("#5eead4");

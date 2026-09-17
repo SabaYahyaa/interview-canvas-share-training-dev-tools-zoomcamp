@@ -1,0 +1,52 @@
+# To Run the application, use the following command:
+# docker compose down -v
+# docker-compose up --build -d
+# then: docker compose ps
+# docker compose logs web
+
+networks:
+  app-network:
+    name: ${SDIP_NETWORK_NAME}
+    driver: bridge
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: interviewer-postgres
+    networks:
+      - app-network
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  web:
+    build: .
+    container_name: interviewer-canvas-container
+    networks:
+      - app-network
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - INTERVIEWER_USER_ID=${INTERVIEWER_USER_ID}
+      - INTERVIEWER_EMAIL=${INTERVIEWER_EMAIL}
+      - INTERVIEWER_DISPLAY_NAME=${INTERVIEWER_DISPLAY_NAME}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

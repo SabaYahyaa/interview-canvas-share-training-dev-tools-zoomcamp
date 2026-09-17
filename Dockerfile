@@ -28,3 +28,7 @@ COPY backend/ ./
 
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# build a docker container without docker compose file
+# docker build -t interviewer-canvas-app .
+# docker run -p 8000:8000 --name interviewer-canvas-container interviewer-canvas-app

@@ -2,18 +2,27 @@ import os
 from datetime import datetime, timezone
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
+from dotenv import load_dotenv
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./interview.db")
+load_dotenv()
 
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {},
+# Seed constants
+INTERVIEWER_USER_ID = os.getenv("INTERVIEWER_USER_ID", "user-123")
+INTERVIEWER_EMAIL = os.getenv("INTERVIEWER_EMAIL", "host@example.com")
+INTERVIEWER_DISPLAY_NAME = os.getenv("INTERVIEWER_DISPLAY_NAME", "Interviewer")
+
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://postgres:postgres@localhost:5432/interviewer_db"
 )
+
+engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
 def get_db():
+    """Dependency for obtaining a DB session in FastAPI routes."""
     db = SessionLocal()
     try:
         yield db
@@ -26,20 +35,26 @@ def utc_now() -> str:
 
 
 def init_db():
-    # Import models inside function or at top level to ensure tables are registered
+    # Import models here to prevent circular import on startup
     from app.models import UserModel
 
-    # Create all database tables if they don't exist yet
     Base.metadata.create_all(bind=engine)
 
-    # Seed default host user required by routes
     db = SessionLocal()
     try:
-        user = db.query(UserModel).filter_by(id="user-123").first()
+        user = db.query(UserModel).filter_by(id=INTERVIEWER_USER_ID).first()
         if not user:
-            db.add(
-                UserModel(id="user-123", name="Interviewer", email="host@example.com")
+            interviewer = UserModel(
+                id=INTERVIEWER_USER_ID,
+                email=INTERVIEWER_EMAIL,
+                display_name=INTERVIEWER_DISPLAY_NAME,
             )
+            db.add(interviewer)
             db.commit()
+            print(f"Seeded default interviewer: {INTERVIEWER_DISPLAY_NAME}")
+    except Exception as e:
+        db.rollback()
+        print(f"Error initializing database: {e}")
+        raise
     finally:
         db.close()

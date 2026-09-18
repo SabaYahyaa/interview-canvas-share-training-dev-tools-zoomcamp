@@ -38,9 +38,23 @@ function Lobby() {
     if (!name.trim()) return;
     setBusy(true);
     try {
-      const { participant, session } = await api.join(token, name.trim());
-      sessionStorage.setItem(`sdip.me.${session.id}`, JSON.stringify(participant));
-      navigate({ to: "/room/$sessionId", params: { sessionId: session.id } });
+      const res = await api.join(token, name.trim());
+      const participant = res.participant;
+      
+      // Multi-layer extraction for session ID
+      const sessionId =
+        res.session?.id ||
+        res.session?.session_id ||
+        res.rawResponse?.session_id ||
+        res.rawResponse?.sessionId ||
+        data?.session?.id;
+
+      if (!sessionId) {
+        throw new Error("Unable to retrieve a valid session ID from the server response.");
+      }
+
+      sessionStorage.setItem(`sdip.me.${sessionId}`, JSON.stringify(participant));
+      navigate({ to: "/room/$sessionId", params: { sessionId } });
     } catch (err) {
       setBusy(false);
       alert((err as Error).message);

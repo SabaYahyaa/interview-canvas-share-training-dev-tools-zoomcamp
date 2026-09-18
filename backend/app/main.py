@@ -60,10 +60,10 @@ if STATIC_DIR:
 
 @app.get("/{full_path:path}")
 async def serve_spa(request: Request, full_path: str):
-    # Pass-through for API, WebSockets, and Swagger docs
+    # Direct API and WebSocket calls should strictly 404 if not matched by routers
     if (
-        full_path.startswith("v1")
-        or full_path.startswith("ws")
+        full_path.startswith("v1/")
+        or full_path.startswith("ws/")
         or full_path in ["docs", "openapi.json", "redoc"]
     ):
         raise HTTPException(status_code=404, detail="API route not found")
@@ -71,12 +71,12 @@ async def serve_spa(request: Request, full_path: str):
     if not STATIC_DIR:
         return {"message": "API Server Running (No static frontend found)"}
 
-    # Serve direct file matches (e.g. favicon, static assets)
+    # Direct static file check (e.g., assets, favicon)
     file_path = os.path.join(STATIC_DIR, full_path)
     if os.path.isfile(file_path):
         return FileResponse(file_path)
 
-    # Single-Page Application (SPA) fallback
+    # SPA Fallback for /join/{token}, /room/{session_id}, etc.
     index_file = os.path.join(STATIC_DIR, "index.html")
     if os.path.exists(index_file):
         return FileResponse(index_file)

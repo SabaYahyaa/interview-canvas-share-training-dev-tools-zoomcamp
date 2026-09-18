@@ -1,5 +1,5 @@
 # To Run the application, use the following command:
-# docker compose down -v
+# docker compose down -v --remove-orphans
 # docker-compose up --build -d
 # then: docker compose ps
 # docker compose logs web
@@ -48,6 +48,12 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
 
 volumes:
   postgres_data:

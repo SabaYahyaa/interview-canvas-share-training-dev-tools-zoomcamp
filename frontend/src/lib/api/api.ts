@@ -229,7 +229,6 @@ export const api = {
       body: JSON.stringify(input),
     });
 
-    // Extract InterviewSession if response is wrapped as { session: {...} } or { data: {...} }
     const session: InterviewSession = rawResponse?.session ?? rawResponse?.data ?? rawResponse;
     if (!session || !session.id) {
       throw new Error("Backend response from POST /v1/sessions is missing a valid session 'id'.");
@@ -272,11 +271,17 @@ export const api = {
   inspectToken: (token: string) =>
     request<TokenInspection>(`/v1/join/${validateId(token, "token")}`),
 
-  join: (token: string, display_name: string) =>
-    request<{ participant: Participant; session: InterviewSession }>(
+  join: async (token: string, display_name: string) => {
+    const rawResponse = await request<any>(
       `/v1/join/${validateId(token, "token")}`,
       { method: "POST", body: JSON.stringify({ display_name }) }
-    ),
+    );
+
+    const participant: Participant = rawResponse?.participant;
+    const session: InterviewSession = rawResponse?.session ?? rawResponse?.data ?? rawResponse;
+
+    return { participant, session, rawResponse };
+  },
 
   joinAsOwner: (sessionId: string) =>
     request<Participant>(`/v1/sessions/${validateId(sessionId)}/participants`, {

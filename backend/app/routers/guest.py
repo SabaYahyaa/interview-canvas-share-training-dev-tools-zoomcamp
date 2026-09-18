@@ -45,6 +45,7 @@ async def join_session(token: str, req: JoinRequest, db: Session = Depends(get_d
     link = db.query(GuestLinkModel).filter_by(token=token).first()
     if not link:
         raise HTTPException(status_code=404, detail="Invalid token")
+        
     session = db.query(InterviewSessionModel).filter_by(id=link.session_id).first()
 
     participant = ParticipantModel(
@@ -56,7 +57,12 @@ async def join_session(token: str, req: JoinRequest, db: Session = Depends(get_d
     db.commit()
     db.refresh(participant)
 
-    return {"participant": participant, "session": session}
+    # Return session_id explicitly at the root level so the frontend can read data.session_id or data.session.id
+    return {
+        "participant": participant, 
+        "session": session,
+        "session_id": link.session_id
+    }
 
 
 @router.websocket("/ws/rooms/{session_id}")

@@ -26,5 +26,5 @@ services:
 databases:
   - name: interviewer-postgres
     databaseName: interviewer_db
-    user: postgres
+    user: interviewer_user
     plan: free

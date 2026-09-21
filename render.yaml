@@ -1,5 +1,5 @@
 ###########################################################
-#   Cloud Multi-Container Environment
+#   Cloud Multi-Container Environment Blueprint
 ###########################################################
 services:
   - type: web
@@ -15,13 +15,13 @@ services:
       - key: SDIP_JWT_SECRET
         generateValue: true
       - key: PORT
-        value: 8000
+        value: "8000"
       - key: INTERVIEWER_USER_ID
-        value: user-123
+        sync: false
       - key: INTERVIEWER_EMAIL
-        value: host@example.com
+        sync: false
       - key: INTERVIEWER_DISPLAY_NAME
-        value: Interviewer
+        sync: false
 
 databases:
   - name: interviewer-postgres

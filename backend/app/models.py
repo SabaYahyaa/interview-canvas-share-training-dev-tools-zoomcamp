@@ -60,9 +60,7 @@ class ParticipantModel(Base):
 class CanvasDocumentModel(Base):
     __tablename__ = "canvas_documents"
 
-    session_id = Column(
-        String, ForeignKey("interview_sessions.id"), primary_key=True
-    )
+    session_id = Column(String, ForeignKey("interview_sessions.id"), primary_key=True)
     elements_json = Column(Text, default="[]")
     version = Column(Integer, default=1)
     updated_at = Column(String, default=utc_now)
@@ -74,9 +72,7 @@ class GuestLinkModel(Base):
     __tablename__ = "guest_links"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid4()))
-    session_id = Column(
-        String, ForeignKey("interview_sessions.id"), nullable=False
-    )
+    session_id = Column(String, ForeignKey("interview_sessions.id"), nullable=False)
     token = Column(String, unique=True, index=True, nullable=False)
     role_granted = Column(String, default="candidate")
     created_at = Column(String, default=utc_now)

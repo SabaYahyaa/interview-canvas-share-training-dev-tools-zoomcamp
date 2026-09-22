@@ -12,8 +12,7 @@ INTERVIEWER_EMAIL = os.getenv("INTERVIEWER_EMAIL", "host@example.com")
 INTERVIEWER_DISPLAY_NAME = os.getenv("INTERVIEWER_DISPLAY_NAME", "Interviewer")
 
 DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://postgres:postgres@localhost:5432/interviewer_db"
+    "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/interviewer_db"
 )
 
 engine = create_engine(DATABASE_URL)

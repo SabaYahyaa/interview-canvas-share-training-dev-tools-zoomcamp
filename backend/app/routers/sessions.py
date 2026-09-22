@@ -274,9 +274,11 @@ async def get_audit(session_id: str, db: Session = Depends(get_db)):
         return []
     return [
         {
-            "timestamp": canvas.updated_at.isoformat()
-            if canvas.updated_at
-            else utc_now().isoformat(),
+            "timestamp": (
+                canvas.updated_at.isoformat()
+                if canvas.updated_at
+                else utc_now().isoformat()
+            ),
             "elements": json.loads(canvas.elements_json),
             "version": canvas.version,
         }

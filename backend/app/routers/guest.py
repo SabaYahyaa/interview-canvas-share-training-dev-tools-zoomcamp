@@ -10,9 +10,7 @@ from app.websockets import ws_manager
 router = APIRouter(tags=["Guest Links & WebSockets"])
 
 
-@router.post(
-    "/v1/sessions/{session_id}/guest-links", response_model=GuestLinkSchema
-)
+@router.post("/v1/sessions/{session_id}/guest-links", response_model=GuestLinkSchema)
 async def create_guest_link(
     session_id: str, payload: dict = None, db: Session = Depends(get_db)
 ):
@@ -45,7 +43,7 @@ async def join_session(token: str, req: JoinRequest, db: Session = Depends(get_d
     link = db.query(GuestLinkModel).filter_by(token=token).first()
     if not link:
         raise HTTPException(status_code=404, detail="Invalid token")
-        
+
     session = db.query(InterviewSessionModel).filter_by(id=link.session_id).first()
 
     participant = ParticipantModel(
@@ -59,9 +57,9 @@ async def join_session(token: str, req: JoinRequest, db: Session = Depends(get_d
 
     # Return session_id explicitly at the root level so the frontend can read data.session_id or data.session.id
     return {
-        "participant": participant, 
+        "participant": participant,
         "session": session,
-        "session_id": link.session_id
+        "session_id": link.session_id,
     }
 
 

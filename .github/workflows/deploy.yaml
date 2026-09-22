@@ -15,18 +15,18 @@ jobs:
   test-and-deploy:
     runs-on: ubuntu-latest
 
-    # Service container for PostgreSQL
+    # Service container for PostgreSQL using GitHub Secrets
     services:
       db:
         image: postgres:15-alpine
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: interviewer_db
+          POSTGRES_USER: ${{ secrets.CI_POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.CI_POSTGRES_DB }}
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres"
+          --health-cmd "pg_isready -U ${{ secrets.CI_POSTGRES_USER }}"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -34,11 +34,6 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-
-      - name: Load Environment Variables from .env.example
-        uses: xaviercf/dotenv-action@v1
-        with:
-          path: ./.env.example
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -76,7 +71,7 @@ jobs:
       - name: Run Pytest Backend Suite
         working-directory: ./backend
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/interviewer_db
+          DATABASE_URL: postgresql://${{ secrets.CI_POSTGRES_USER }}:${{ secrets.CI_POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.CI_POSTGRES_DB }}
           INTERVIEWER_USER_ID: user-123
           INTERVIEWER_EMAIL: test@example.com
           INTERVIEWER_DISPLAY_NAME: TestUser
@@ -97,8 +92,8 @@ jobs:
           RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
         run: |
           if [ -n "$RENDER_DEPLOY_HOOK" ]; then
-            echo "All tests, Black, Flake8, and E2E checks passed!"
-            echo "Triggering Render automated deployment..."
+            echo "All quality gates (Black, Flake8, pytest, E2E) passed!"
+            echo "Triggering automated Render deployment..."
             curl -X POST "$RENDER_DEPLOY_HOOK"
           else
             echo "RENDER_DEPLOY_HOOK_URL secret not set. Skipping deployment trigger."

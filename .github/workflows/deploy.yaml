@@ -94,11 +94,12 @@ jobs:
       - name: Run Makefile E2E Suite
         env:
           POETRY: poetry
+          COMPOSE_PROJECT_NAME: interviewer-canvas
         run: make run-e2e
 
-      # --------------------------------------------------
+      # ---------------------------------------------------
       # Deployment Stage: Trigger Render Deploy Hook
-      # --------------------------------------------------
+      # ---------------------------------------------------
       - name: Trigger Render Deployment
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         env:

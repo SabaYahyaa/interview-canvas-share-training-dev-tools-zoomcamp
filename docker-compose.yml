@@ -10,7 +10,7 @@
 
 networks:
   app-network:
-    name: ${SDIP_NETWORK_NAME}
+    name: ${SDIP_NETWORK_NAME:-interviewer_app_network}
     driver: bridge
 
 services:

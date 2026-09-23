@@ -1,4 +1,6 @@
 COMPOSE_PROJECT_NAME ?= interview-canvas-share-by_ai_agent
+POETRY ?= poetry
+
 export COMPOSE_PROJECT_NAME
 
 test:
@@ -16,15 +18,14 @@ run-frontend:
 POETRY := /mnt/c/Windows/poetry.exe
 
 run-e2e:
+	docker compose down -v --remove-orphans
 	@echo "==> Starting Docker stack for DB and backend services..."
 	docker compose up -d --build
 	@echo "==> Waiting for interviewer-canvas-container to become healthy..."
 	@until [ $$(docker inspect -f '{{.State.Health.Status}}' interviewer-canvas-container 2>/dev/null || echo "unhealthy") = "healthy" ]; do \
 		sleep 2; \
 	done
-	@echo "==> Running backend unit tests..."
-	cd backend && $(POETRY) run pytest || (STATUS=$$?; docker compose down -v; exit $$STATUS)
 	@echo "==> Running Playwright E2E tests via Poetry..."
-	@cd test-e2e && $(POETRY) run pytest || (STATUS=$$?; docker compose down -v; exit $$STATUS)
+	cd test-e2e && $(POETRY) run pytest || (STATUS=$$?; docker compose down -v; exit $$STATUS)
 	@echo "==> Cleaning up Docker containers..."
 	docker compose down -v

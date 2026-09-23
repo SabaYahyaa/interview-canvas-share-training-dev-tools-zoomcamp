@@ -91,12 +91,12 @@ jobs:
           poetry install --no-root
           poetry run playwright install --with-deps
 
-      - name: Run Makefile E2E Suite
+      - name: Create .env file for Docker Compose
         run: |
-          export COMPOSE_PROJECT_NAME=interviewer-canvas
-          export POETRY=poetry
-          make run-e2e
+          echo "COMPOSE_PROJECT_NAME=interviewer-canvas" > .env
 
+      - name: Run Makefile E2E Suite
+        run: COMPOSE_PROJECT_NAME=interviewer-canvas POETRY=poetry make run-e2e
       # --------------------------------------------------
       # Deployment Stage: Trigger Render Deploy Hook
       # --------------------------------------------------

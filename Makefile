@@ -1,3 +1,6 @@
+COMPOSE_PROJECT_NAME ?= interview-canvas-share-by_ai_agent
+export COMPOSE_PROJECT_NAME
+
 test:
 	poetry run pytest
 

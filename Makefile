@@ -15,7 +15,6 @@ poetry-test-backend:
 run-frontend:
 	cd frontend && npm run dev
 
-POETRY := /mnt/c/Windows/poetry.exe
 
 run-e2e:
 	docker compose down -v --remove-orphans

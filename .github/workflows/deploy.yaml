@@ -91,8 +91,11 @@ jobs:
           poetry install --no-root
           poetry run playwright install --with-deps
 
-      - name: Stop GitHub Actions Host Postgres (Free Port 5432)
-        run: sudo service postgresql stop || true
+      - name: Free Host Port 5432 (Stop System & Service Containers)
+        run: |
+          sudo service postgresql stop || true
+          docker stop $(docker ps -a -q) 2>/dev/null || true
+          docker rm $(docker ps -a -q) 2>/dev/null || true
 
       - name: Run Makefile E2E Suite
         env:

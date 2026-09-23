@@ -1,7 +1,7 @@
 ############################################################
 #   automate check code:
 # 1. quality by black (format the code to have the same style) 
-# 2. flake8 (find import not used, code not used, synthax erros) 
+# 2. flake8 (find import not used, code not used, syntax errors) 
 ############################################################
 name: CI/CD Pipeline & Automatic Deployment
 
@@ -97,9 +97,9 @@ jobs:
           COMPOSE_PROJECT_NAME: interviewer-canvas
         run: make run-e2e
 
-      # ---------------------------------------------------
+      # --------------------------------------------------
       # Deployment Stage: Trigger Render Deploy Hook
-      # ---------------------------------------------------
+      # --------------------------------------------------
       - name: Trigger Render Deployment
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         env:

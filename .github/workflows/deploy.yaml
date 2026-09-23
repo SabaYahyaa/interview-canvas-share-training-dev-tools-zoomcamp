@@ -91,15 +91,22 @@ jobs:
           poetry install --no-root
           poetry run playwright install --with-deps
 
-      - name: Stop GitHub Actions Service Postgres (Free Port 5432)
+      - name: Stop GitHub Actions Host Postgres (Free Port 5432)
         run: sudo service postgresql stop || true
 
       - name: Run Makefile E2E Suite
         env:
           COMPOSE_PROJECT_NAME: interviewer-canvas-share-by_ai_agent
           SDIP_NETWORK_NAME: interviewer-net
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: interviewer_db
+          POSTGRES_PORT: 5432
+          INTERVIEWER_USER_ID: user-123
+          INTERVIEWER_EMAIL: test@example.com
+          INTERVIEWER_DISPLAY_NAME: TestUser
           POETRY: poetry
-        run: make run-e2e 
+        run: make run-e2e
       # --------------------------------------------------
       # Deployment Stage: Trigger Render Deploy Hook
       # --------------------------------------------------

@@ -1,0 +1,19 @@
+name: Promote Image to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'GHCR Image Tag to promote (e.g., 2026-09-25-a1b2c3d or latest)'
+        required: true
+        default: 'latest'
+
+jobs:
+  promote:
+    name: Trigger Production Deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render Production Deploy Hook
+        run: |
+          echo "Promoting tag '${{ github.event.inputs.image_tag }}' to Production..."
+          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"

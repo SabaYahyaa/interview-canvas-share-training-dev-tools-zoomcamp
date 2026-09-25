@@ -54,6 +54,57 @@ This project serves as a step-by-step blueprint for rapidly prototyping and buil
      - 🚢 **Automated Continuous Deployment:** Upon passing all 4 quality gates, triggers a webhook to Render to automatically rebuild and deploy the live web service without manual intervention.
 ---
 
+
+
+
+## 🚀 Deployment & Environments Architecture
+
+This project uses a multi-environment CI/CD pipeline hosted on **Render** and backed by **GitHub Container Registry (GHCR)** for immutable Docker image storage.
+
+### Database Isolation Strategy
+
+To fit within Render's single active free-tier database limit, both environments share one PostgreSQL instance (`interview-postgres`). Data isolation is handled using separate PostgreSQL schemas:
+
+* **Production Environment:** Uses the `public` schema (`SDIP_DATABASE_URL`).
+* **Dev Environment:** Uses the `dev` schema (`SDIP_DATABASE_URL` with `?options=-csearch_path=dev` appended).
+
+All Dev queries, writes, and migrations run strictly inside the `dev` schema, keeping production data completely untouched.
+
+---
+
+### Environment Breakdown
+
+| Environment | Web Service Name | Database Instance | Schema Isolation | Trigger Strategy |
+| :--- | :--- | :--- | :--- | :--- |
+| **Dev** | `interviewer-canvas-dev` | `interview-postgres` | `dev` (`?options=-csearch_path=dev`) | **Automated:** Pushes to `main` build `ghcr.io/<owner>/<repo>:<YYYY-MM-DD-SHA>` and deploy to Dev. |
+| **Production** | `interview-canvas-app` | `interview-postgres` | `public` (default) | **Manual:** Triggered via `Promote Image to Production` workflow in GitHub Actions. |
+
+---
+
+### Deployment Pipeline Procedures
+
+#### 1. Automated Dev Deployment (Git Push)
+
+```mermaid
+flowchart TD
+    User([Developer / User]) -->|1. git push| GHRepo[GitHub Repository]
+    GHRepo -->|2. Triggers workflow| GHRunner[GitHub Actions Runner]
+    
+    subgraph GHActions [GitHub Actions Execution]
+        GHRunner -->|3. Build & Push Image| GHCR[(GitHub Container Registry - GHCR)]
+        GHRunner -->|4. Trigger Deploy Hook| Render[Render Service: interviewer-canvas-dev]
+    end
+    
+    Render -->|5. Pull new image| GHCR
+    Render -->|6. Start Container| RenderContainer[Live Container Instance]
+    RenderContainer -->|7. Connect via SDIP_DATABASE_URL| DB[(PostgreSQL: interview-postgres)]
+    
+    subgraph SchemaIsolation [Database Isolation]
+        DB -->|?options=-csearch_path=dev| DevSchema[dev Schema]
+    end
+```
+
+
 ## 💻 Local Setup & Quick Start
 
 Follow these simple steps to get the application up and running locally.

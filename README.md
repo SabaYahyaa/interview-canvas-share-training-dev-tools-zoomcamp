@@ -6,12 +6,14 @@ A browser-based collaborative workspace for conducting live system-design interv
 
 ## 🌐 Live Application & Production Endpoints
 
-The application is deployed and running live on **Render**:
+The application is deployed across multi-environment web services hosted on **Render**:
 
-* 🖥️ **Live Web App:** [https://interviewer-canvas-app.onrender.com](https://interviewer-canvas-app.onrender.com)[cite: 1]
-* 📚 **OpenAPI / Swagger Docs:** [https://interviewer-canvas-app.onrender.com/docs](https://interviewer-canvas-app.onrender.com/docs)
+* 🖥️ **Production Web App:** [https://interviewer-canvas-app.onrender.com](https://interviewer-canvas-app.onrender.com)
+* 📚 **Production API / Swagger Docs:** [https://interviewer-canvas-app.onrender.com/docs](https://interviewer-canvas-app.onrender.com/docs)
+* 🧪 **Dev Web App:** [https://interviewer-canvas-dev.onrender.com](https://interviewer-canvas-dev.onrender.com)
+* 📚 **Dev API / Swagger Docs:** [https://interviewer-canvas-dev.onrender.com/docs](https://interviewer-canvas-dev.onrender.com/docs)
 
-> **Note:** As it runs on a free Render instance, the service may spin down after periods of inactivity. Initial requests may take ~30–50 seconds to wake up the instance.
+> **Note:** Running on free Render instances, the services may spin down after periods of inactivity. Initial requests may take ~30–50 seconds to wake up an instance.
 
 ---
 
@@ -45,13 +47,16 @@ This project serves as a step-by-step blueprint for rapidly prototyping and buil
 5. 🎭 **E2E Testing Automation:**
    - Developed automated Playwright test suites (`test-e2e/`) to continuously verify live UI-to-backend integration and WebSocket synchronization.
 
-6. 🚀 **CI/CD Quality Gates & Automated Render Deployment:**
-   - Formulated a multi-stage GitHub Actions pipeline (`.github/workflows/deploy.yaml`) triggered on every `push` to `main`:
-     - 🧹 **Code Formatting:** Validates code formatting using `black --check`.
-     - 🔍 **Linting & Code Quality:** Enforces clean code standards using `flake8`.
-     - 🧪 **Backend Unit & Integration Tests:** Executes `pytest` against an isolated PostgreSQL container.
-     - 🎭 **End-to-End Stack Verification:** Spins up the full Docker Compose stack (`make run-e2e`) and runs Playwright integration tests.
-     - 🚢 **Automated Continuous Deployment:** Upon passing all 4 quality gates, triggers a webhook to Render to automatically rebuild and deploy the live web service without manual intervention.
+6. 🚢 **Automated Dev CI/CD Pipeline:**
+   - Formulated an automated GitHub Actions workflow (`.github/workflows/deploy.yml`) triggered on every push to `main`:
+     - 🧪 **Automated Testing:** Runs backend unit and integration tests using `pytest`.
+     - 📦 **Container Registry Publishing:** Builds a Docker container image and publishes it to **GitHub Container Registry (GHCR)** with `latest` and immutable `YYYY-MM-DD-SHA` tags.
+     - ⚡ **Automated Dev Deployment:** Triggers `RENDER_DEV_DEPLOY_HOOK` to update the `interviewer-canvas-dev` service seamlessly.
+
+7. 🛡️ **Manual Production Promotion & Environment Isolation:**
+   - Established a controlled promotion workflow (`.github/workflows/promote-prod.yml`) allowing manual image promotion to Production after Dev verification.
+   - Implemented database schema isolation on a single PostgreSQL instance (`dev` vs. `public` schema) to maintain data separation within free tier resource limits.
+
 ---
 
 
@@ -87,22 +92,44 @@ All Dev queries, writes, and migrations run strictly inside the `dev` schema, ke
 
 ```mermaid
 flowchart TD
-    User([Developer / User]) -->|1. git push| GHRepo[GitHub Repository]
-    GHRepo -->|2. Triggers workflow| GHRunner[GitHub Actions Runner]
+    User([Developer / User]) -->|1. git push main| GHRepo[GitHub Repository]
+    GHRepo -->|2. Triggers deploy.yml| GHRunner[GitHub Actions Runner]
     
-    subgraph GHActions [GitHub Actions Execution]
-        GHRunner -->|3. Build & Push Image| GHCR[(GitHub Container Registry - GHCR)]
-        GHRunner -->|4. Trigger Deploy Hook| Render[Render Service: interviewer-canvas-dev]
+    subgraph GHActionsDev [GitHub Actions: Dev Workflow]
+        GHRunner -->|3. Build & Push Image| GHCR[(GitHub Container Registry)]
+        GHRunner -->|4. Trigger RENDER_DEV_DEPLOY_HOOK| RenderDev[Render Service: interviewer-canvas-dev]
     end
     
-    Render -->|5. Pull new image| GHCR
-    Render -->|6. Start Container| RenderContainer[Live Container Instance]
-    RenderContainer -->|7. Connect via SDIP_DATABASE_URL| DB[(PostgreSQL: interview-postgres)]
+    RenderDev -->|5. Pull new image| GHCR
+    RenderDev -->|6. Start Container| DevContainer[Live Dev Instance]
+    DevContainer -->|7. Connect via SDIP_DATABASE_URL| DB[(PostgreSQL: interview-postgres)]
     
-    subgraph SchemaIsolation [Database Isolation]
+    subgraph SchemaDev [Database Isolation]
         DB -->|?options=-csearch_path=dev| DevSchema[dev Schema]
     end
 ```
+#### 2. Manual Production Promotion (Workflow Dispatch)
+```mermaid
+flowchart TD
+    User([Developer / User]) -->|1. Select 'Promote Image to Production' & input tag| GHUI[GitHub Actions UI]
+    GHUI -->|2. Triggers promote-prod.yml| GHRunnerProd[GitHub Actions Runner]
+    
+    subgraph GHActionsProd [GitHub Actions: Prod Promotion]
+        GHRunnerProd -->|3. Trigger RENDER_DEPLOY_HOOK_URL| RenderProd[Render Service: interview-canvas-app]
+    end
+    
+    RenderProd -->|4. Pull specified image tag| GHCR[(GitHub Container Registry)]
+    RenderProd -->|5. Start Container| ProdContainer[Live Production Instance]
+    ProdContainer -->|6. Connect via SDIP_DATABASE_URL| DB[(PostgreSQL: interview-postgres)]
+    
+    subgraph SchemaProd [Database Isolation]
+        DB -->|Default Search Path| PublicSchema[public Schema]
+    end
+```
+
+
+
+
 
 
 ## 💻 Local Setup & Quick Start

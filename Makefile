@@ -25,6 +25,7 @@ run-e2e:
 		sleep 2; \
 	done
 	@echo "==> Running Playwright E2E tests via Poetry..."
-	cd test-e2e && $(POETRY) run pytest || (STATUS=$$?; docker compose down -v; exit $$STATUS)
+# 	cd test-e2e && $(POETRY) run pytest || (STATUS=$$?; docker compose down -v; exit $$STATUS)
+	cd test-e2e && docker run --rm --network host -v "$$(pwd):/work" -w /work mcr.microsoft.com/playwright/python:v1.63.0-jammy sh -c "pip install poetry && poetry config virtualenvs.create false && poetry install && poetry run pytest" || (STATUS=$$?; docker compose down -v; exit $$STATUS)
 	@echo "==> Cleaning up Docker containers..."
 	docker compose down -v

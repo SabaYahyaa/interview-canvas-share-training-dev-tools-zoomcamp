@@ -104,13 +104,13 @@ jobs:
       db:
         image: postgres:15-alpine
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: interviewer_db
+          POSTGRES_USER: ${{ secrets.CI_POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.CI_POSTGRES_DB }}
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres"
+          --health-cmd "pg_isready -U ${{ secrets.CI_POSTGRES_USER }} -d ${{ secrets.CI_POSTGRES_DB }}"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -137,7 +137,7 @@ jobs:
 
       - name: Run Backend Pytest Suite
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/interviewer_db
+          DATABASE_URL: postgresql://${{ secrets.CI_POSTGRES_USER }}:${{ secrets.CI_POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.CI_POSTGRES_DB }}
         run: |
           cd backend
           poetry run pytest -v
@@ -149,8 +149,12 @@ jobs:
         env:
           SDIP_JWT_SECRET: ${{ secrets.SDIP_JWT_SECRET }}
         run: |
-          # 0. Clean up any existing containers or port bindings
+          # 0. Clean up Docker compose, stop host postgres, and free port 5432
           docker compose down -v --remove-orphans || true
+          sudo systemctl stop postgresql || true
+          docker ps -q --filter "ancestor=postgres:15-alpine" | xargs -r docker stop || true
+          docker ps -q --filter "publish=5432" | xargs -r docker stop || true
+
           # 1. Spin up PostgreSQL and FastAPI Backend via Docker Compose
           docker compose up -d --build
 

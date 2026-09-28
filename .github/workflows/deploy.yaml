@@ -127,7 +127,7 @@ jobs:
       - name: Install Poetry & Dependencies
         run: |
           pip install poetry
-          cd backend && poetry install
+          cd backend && poetry install --no-root
 
       - name: Quality Check (Black & Flake8)
         run: |

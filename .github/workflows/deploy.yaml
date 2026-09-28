@@ -149,6 +149,8 @@ jobs:
         env:
           SDIP_JWT_SECRET: ${{ secrets.SDIP_JWT_SECRET }}
         run: |
+          # 0. Clean up any existing containers or port bindings
+          docker compose down -v --remove-orphans || true
           # 1. Spin up PostgreSQL and FastAPI Backend via Docker Compose
           docker compose up -d --build
 

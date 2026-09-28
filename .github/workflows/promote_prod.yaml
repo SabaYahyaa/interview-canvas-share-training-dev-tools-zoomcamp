@@ -1,19 +1,54 @@
-name: Promote Image to Production
+# name: Promote Image to Production
+
+# on:
+#   workflow_dispatch:
+#     inputs:
+#       image_tag:
+#         description: 'GHCR Image Tag to promote (e.g., 2026-09-25-a1b2c3d or latest)'
+#         required: true
+#         default: 'latest'
+
+# jobs:
+#   promote:
+#     name: Trigger Production Deployment
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Trigger Render Production Deploy Hook
+#         run: |
+#           echo "Promoting tag '${{ github.event.inputs.image_tag }}' to Production..."
+#           curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+
+###############################
+# New Code
+###############################
+name: Manual Production Promotion
 
 on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: 'GHCR Image Tag to promote (e.g., 2026-09-25-a1b2c3d or latest)'
+        description: 'GHCR Image Tag to promote to Production (e.g., latest or 2026-09-28-sha)'
         required: true
         default: 'latest'
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
-  promote:
-    name: Trigger Production Deployment
+  promote-to-prod:
+    name: Promote Image to Production
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Render Production Deploy Hook
+      - name: Trigger Render Production Deployment
+        env:
+          RENDER_PROD_DEPLOY_HOOK: ${{ secrets.RENDER_PROD_DEPLOY_HOOK }}
+          TAG: ${{ github.event.inputs.image_tag }}
         run: |
-          echo "Promoting tag '${{ github.event.inputs.image_tag }}' to Production..."
-          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+          if [ -n "$RENDER_PROD_DEPLOY_HOOK" ]; then
+            echo "Promoting image tag '$TAG' to Production on Render..."
+            curl -X POST "$RENDER_PROD_DEPLOY_HOOK"
+          else
+            echo "RENDER_PROD_DEPLOY_HOOK secret is not set."
+            exit 1
+          fi

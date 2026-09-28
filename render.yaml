@@ -100,15 +100,40 @@
 #           else
 #             echo "RENDER_DEPLOY_HOOK_URL secret not set. Skipping deploy trigger."
 #           fi
+
+
+###############################
+# New Code
+###############################
 services:
   - type: web
-    name: interview-canvas-dev
-    env: docker
-    dockerfilePath: Dockerfile
-    plan: free
+    name: interviewer-canvas-dev
+    runtime: image
+    image:
+      url: ghcr.io/SabaYahyaa/interview-canvas-share-training-dev-tools-zoomcamp:latest
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: interviewer-postgres
+          property: connectionString
+      - key: DB_SCHEMA
+        value: dev
 
   - type: web
-    name: interview-canvas-prod
-    env: docker
-    dockerfilePath: Dockerfile
+    name: interview-canvas-app
+    runtime: image
+    image:
+      url: ghcr.io/SabaYahyaa/interview-canvas-share-training-dev-tools-zoomcamp:latest
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: interviewer-postgres
+          property: connectionString
+      - key: DB_SCHEMA
+        value: public
+
+databases:
+  - name: interviewer-postgres
+    databaseName: interviewer_db
+    user: postgres
     plan: free

@@ -1,8 +1,88 @@
-############################################################
-#   automate check code:
-# 1. quality by black (format the code to have the same style) 
-# 2. flake8 (find import not used, code not used, syntax errors) 
-############################################################
+# ############################################################
+# #   automate check code:
+# # 1. quality by black (format the code to have the same style) 
+# # 2. flake8 (find import not used, code not used, syntax errors) 
+# ############################################################
+# name: CI/CD Pipeline - Dev Build & Deploy
+
+# on:
+#   push:
+#     branches:
+#       - main
+#   workflow_dispatch:
+
+# permissions:
+#   contents: read
+#   packages: write
+
+# jobs:
+#   test:
+#     name: Run Test Suite
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout Code
+#         uses: actions/checkout@v4
+
+#       - name: Set up Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: '3.11'
+
+#       - name: Install Dependencies
+#         run: |
+#           python -m pip install --upgrade pip
+#           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+#           if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+
+#       - name: Run Pytest
+#         env:
+#           SDIP_JWT_SECRET: ${{ secrets.SDIP_JWT_SECRET }}
+#         run: |
+#           pytest || echo "No tests configured or tests passed."
+
+#   build-and-deploy-dev:
+#     name: Build Image & Deploy to Dev
+#     needs: test
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout Code
+#         uses: actions/checkout@v4
+
+#       - name: Log in to GitHub Container Registry
+#         uses: docker/login-action@v3
+#         with:
+#           registry: ghcr.io
+#           username: ${{ github.actor }}
+#           password: ${{ secrets.GITHUB_TOKEN }}
+
+#       - name: Extract Metadata and Tags
+#         id: meta
+#         uses: docker/metadata-action@v5
+#         with:
+#           images: ghcr.io/${{ github.repository }}
+#           tags: |
+#             type=raw,value=latest
+#             type=sha,format=long,prefix={{date 'YYYY-MM-DD'}}-
+
+#       - name: Set up Docker Buildx
+#         uses: docker/setup-buildx-action@v3
+
+#       - name: Build and Push Docker Image
+#         uses: docker/build-push-action@v6
+#         with:
+#           context: .
+#           push: true
+#           tags: ${{ steps.meta.outputs.tags }}
+#           labels: ${{ steps.meta.outputs.labels }}
+
+#       - name: Trigger Render Dev Deployment
+#         run: |
+#           curl -X POST "${{ secrets.RENDER_DEV_DEPLOY_HOOK }}"
+
+
+###############################
+# New Code
+###############################
 name: CI/CD Pipeline - Dev Build & Deploy
 
 on:
@@ -16,9 +96,25 @@ permissions:
   packages: write
 
 jobs:
-  test:
-    name: Run Test Suite
+  test-build-deploy-dev:
+    name: Run Tests, Build Image & Deploy Dev
     runs-on: ubuntu-latest
+
+    services:
+      db:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: interviewer_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -26,27 +122,29 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.10"
 
-      - name: Install Dependencies
+      - name: Install Poetry & Dependencies
         run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+          pip install poetry
+          cd backend && poetry install
 
-      - name: Run Pytest
+      - name: Quality Check (Black & Flake8)
+        run: |
+          cd backend
+          poetry run black --check .
+          poetry run flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      - name: Run Backend Pytest Suite
         env:
-          SDIP_JWT_SECRET: ${{ secrets.SDIP_JWT_SECRET }}
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/interviewer_db
         run: |
-          pytest || echo "No tests configured or tests passed."
+          cd backend
+          poetry run pytest -v
 
-  build-and-deploy-dev:
-    name: Build Image & Deploy to Dev
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - name: Run Containerized E2E Tests (Playwright)
+        run: |
+          cd test-e2e && docker run --rm --network host -v "$(pwd):/work" -w /work mcr.microsoft.com/playwright/python:v1.63.0-jammy sh -c "pip install poetry && poetry config virtualenvs.create false && poetry install && poetry run pytest"
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -76,5 +174,13 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Trigger Render Dev Deployment
+        env:
+          RENDER_DEV_DEPLOY_HOOK: ${{ secrets.RENDER_DEV_DEPLOY_HOOK }}
         run: |
-          curl -X POST "${{ secrets.RENDER_DEV_DEPLOY_HOOK }}"
+          if [ -n "$RENDER_DEV_DEPLOY_HOOK" ]; then
+            echo "All tests passed. Triggering Dev deployment on Render..."
+            curl -X POST "$RENDER_DEV_DEPLOY_HOOK"
+          else
+            echo "RENDER_DEV_DEPLOY_HOOK secret is not set."
+            exit 1
+          fi

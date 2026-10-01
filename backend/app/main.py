@@ -87,6 +87,7 @@ async def serve_spa(request: Request, full_path: str):
 
     raise HTTPException(status_code=404, detail="Index file not found")
 
+
 # import os
 # from contextlib import asynccontextmanager
 # from fastapi import FastAPI, HTTPException, Request

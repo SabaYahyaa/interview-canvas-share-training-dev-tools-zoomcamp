@@ -39,25 +39,19 @@ def setup_telemetry(app: FastAPI, db_engine=None):
     # 1. Traces Configuration (Sends to Grafana Tempo)
     tracer_provider = TracerProvider(resource=resource)
     trace_exporter = OTLPSpanExporter(
-        endpoint=f"{endpoint.rstrip('/')}/v1/traces",
-        headers=headers
+        endpoint=f"{endpoint.rstrip('/')}/v1/traces", headers=headers
     )
     tracer_provider.add_span_processor(BatchSpanProcessor(trace_exporter))
     trace.set_tracer_provider(tracer_provider)
 
     # 2. Metrics Configuration (Sends to Grafana Prometheus)
     metric_exporter = OTLPMetricExporter(
-        endpoint=f"{endpoint.rstrip('/')}/v1/metrics",
-        headers=headers
+        endpoint=f"{endpoint.rstrip('/')}/v1/metrics", headers=headers
     )
     metric_reader = PeriodicExportingMetricReader(
-        metric_exporter,
-        export_interval_millis=15000  # Send metrics every 15 seconds
+        metric_exporter, export_interval_millis=15000  # Send metrics every 15 seconds
     )
-    meter_provider = MeterProvider(
-        resource=resource,
-        metric_readers=[metric_reader]
-    )
+    meter_provider = MeterProvider(resource=resource, metric_readers=[metric_reader])
     metrics.set_meter_provider(meter_provider)
 
     # 3. Automatic FastAPI Instrumentation
@@ -67,4 +61,6 @@ def setup_telemetry(app: FastAPI, db_engine=None):
     if db_engine:
         SQLAlchemyInstrumentor().instrument(engine=db_engine)
 
-    print(f"[Telemetry] Successfully configured OTLP export to Grafana Cloud for '{service_name}'.")
+    print(
+        f"[Telemetry] Successfully configured OTLP export to Grafana Cloud for '{service_name}'."
+    )

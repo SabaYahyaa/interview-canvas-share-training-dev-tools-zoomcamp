@@ -1,3 +1,9 @@
+import os
+
+# Set environment variables BEFORE importing app or database modules
+os.environ["TESTING"] = "1"
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -31,7 +37,6 @@ def db_session():
 
 @pytest.fixture(scope="function", autouse=True)
 def seed_default_user(db_session):
-    """Automatically seeds default user-123 into the test database before each test."""
     user = UserModel(
         id="user-123",
         email="dev@example.com",

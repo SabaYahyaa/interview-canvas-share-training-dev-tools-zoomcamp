@@ -1,16 +1,12 @@
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import (SimpleSpanProcessor, ConsoleSpanExporter)
-
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor, ConsoleSpanExporter
 
 provider = TracerProvider()
-processor = SimpleSpanProcessor(
-    ConsoleSpanExporter()
-)
+processor = SimpleSpanProcessor(ConsoleSpanExporter())
 provider.add_span_processor(processor)
 trace.set_tracer_provider(provider)
 tracer = trace.get_tracer("my-app")
-
 
 
 def calculate_total(price, quantity):
@@ -19,6 +15,7 @@ def calculate_total(price, quantity):
         span.set_attribute("quantity", quantity)
         results = price * quantity
         return results
+
 
 from fastapi import FastAPI
 from opentelemetry import trace
@@ -29,14 +26,9 @@ from opentelemetry.sdk.trace.export import (
 )
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
-
 provider = TracerProvider()
 
-provider.add_span_processor(
-    SimpleSpanProcessor(
-        ConsoleSpanExporter()
-    )
-)
+provider.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
 
 trace.set_tracer_provider(provider)
 
@@ -49,6 +41,7 @@ FastAPIInstrumentor.instrument_app(app, tracer_provider=provider)
 @app.get("/hello")
 def hello():
     return {"message": "hello"}
+
 
 if __name__ == "__main__":
     # Example usage

@@ -26,8 +26,3 @@ def test_create_session(client):
 def test_get_session_not_found(client):
     response = client.get("/v1/sessions/invalid-uuid-123")
     assert response.status_code == 404
-
-
-def test_get_session_not_found(client):
-    response = client.get("/v1/sessions/invalid-uuid-123")
-    assert response.status_code == 404

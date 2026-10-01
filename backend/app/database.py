@@ -1,27 +1,33 @@
 import os
 from datetime import datetime, timezone
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
-from dotenv import load_dotenv
 
 load_dotenv()
 
-# Seed constants
 INTERVIEWER_USER_ID = os.getenv("INTERVIEWER_USER_ID", "user-123")
 INTERVIEWER_EMAIL = os.getenv("INTERVIEWER_EMAIL", "host@example.com")
 INTERVIEWER_DISPLAY_NAME = os.getenv("INTERVIEWER_DISPLAY_NAME", "Interviewer")
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/interviewer_db"
-)
+# Default to SQLite if DATABASE_URL is not set or if testing
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
 
-engine = create_engine(DATABASE_URL)
+# Handle Render's postgres:// prefix requirement
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# Configure sqlite vs postgres engine parameters
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    engine = create_engine(DATABASE_URL)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
 def get_db():
-    """Dependency for obtaining a DB session in FastAPI routes."""
     db = SessionLocal()
     try:
         yield db
@@ -34,7 +40,10 @@ def utc_now() -> str:
 
 
 def init_db():
-    # Import models here to prevent circular import on startup
+    # Skip database initialization during test execution
+    if os.getenv("TESTING") == "1":
+        return
+
     from app.models import UserModel
 
     Base.metadata.create_all(bind=engine)

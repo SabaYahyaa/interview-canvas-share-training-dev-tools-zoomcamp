@@ -64,11 +64,13 @@ if STATIC_DIR:
     elif os.path.exists(STATIC_DIR):
         app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+
 @app.get("/health")
 @app.head("/health")
 async def health_check():
     """Explicit health check endpoint for Render health checks and OTel metrics."""
     return {"status": "ok"}
+
 
 @app.get("/{full_path:path}")
 async def serve_spa(request: Request, full_path: str):

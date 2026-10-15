@@ -17,12 +17,10 @@
 #         run: |
 #           echo "Promoting tag '${{ github.event.inputs.image_tag }}' to Production..."
 #           curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
-
 ###############################
 # New Code
 ###############################
 name: Manual Production Promotion
-
 on:
   workflow_dispatch:
     inputs:

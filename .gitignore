@@ -6,3 +6,7 @@ frontend/dist
 backend/.venv
 backend/__pycache__
 .git
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/

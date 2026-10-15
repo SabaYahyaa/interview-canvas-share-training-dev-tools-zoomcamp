@@ -1,12 +1,12 @@
 ###########################################################
-#   Local Multi-Container Environment
+#   Local Multi-Container Environment (Grafana Cloud Architecture)
 ###########################################################
-# To Run the application, use the following command:
+# To Run the application:
 # docker compose down -v --remove-orphans
-# docker-compose up --build -d
-# then: docker compose ps
+# docker compose up --build -d
+# docker compose ps
 # docker compose logs web
-# run the test:  docker compose exec web pytest -v
+# Run tests: docker compose exec web pytest -v
 
 networks:
   app-network:
@@ -47,6 +47,11 @@ services:
       - INTERVIEWER_USER_ID=${INTERVIEWER_USER_ID:-user-123}
       - INTERVIEWER_EMAIL=${INTERVIEWER_EMAIL:-test@example.com}
       - INTERVIEWER_DISPLAY_NAME=${INTERVIEWER_DISPLAY_NAME:-TestUser}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      - OTEL_EXPORTER_OTLP_HEADERS_USER=${OTEL_EXPORTER_OTLP_HEADERS_USER:-}
+      - OTEL_EXPORTER_OTLP_HEADERS_KEY=${OTEL_EXPORTER_OTLP_HEADERS_KEY:-}
+      - OTEL_SERVICE_NAME=interviewer-canvas-backend
+      - APP_ENV=dev
     depends_on:
       db:
         condition: service_healthy

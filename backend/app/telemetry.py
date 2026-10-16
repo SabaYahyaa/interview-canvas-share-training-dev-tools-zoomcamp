@@ -66,6 +66,11 @@ def setup_telemetry(app: FastAPI, db_engine=None):
 
     # Attach OpenTelemetry Handler to Python's root logger
     handler = LoggingHandler(level=logging.INFO, logger_provider=logger_provider)
+    formatter = logging.Formatter(
+        "%(asctime)s %(levelname)s [%(name)s] [trace_id=%(otelTraceID)s span_id=%(otelSpanID)s] - %(message)s"
+    )
+    handler.setFormatter(formatter)
+
     logging.getLogger().addHandler(handler)
     logging.getLogger().setLevel(logging.INFO)
 

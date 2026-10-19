@@ -20,7 +20,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 
 class SafeOTelFormatter(logging.Formatter):
-    """Custom formatter that guarantees otelTraceID and otelSpanID exist on every LogRecord."""
+    """Formatter that guarantees otelTraceID and otelSpanID exist on every LogRecord."""
 
     def format(self, record: logging.LogRecord) -> str:
         if not hasattr(record, "otelTraceID"):
@@ -80,14 +80,22 @@ def setup_telemetry(app: FastAPI, db_engine=None):
     LoggingInstrumentor().instrument(set_logging_format=False)
 
     # Attach OpenTelemetry Handler to Python's root logger
-    handler = LoggingHandler(level=logging.INFO, logger_provider=logger_provider)
-    formatter = logging.Formatter(
+    # Instantiate the safe formatter
+    formatter = SafeOTelFormatter(
         "%(asctime)s %(levelname)s [%(name)s] [trace_id=%(otelTraceID)s span_id=%(otelSpanID)s] - %(message)s"
     )
+
+    # Attach OpenTelemetry Handler to Python's root logger
+    handler = LoggingHandler(level=logging.INFO, logger_provider=logger_provider)
     handler.setFormatter(formatter)
 
-    logging.getLogger().addHandler(handler)
-    logging.getLogger().setLevel(logging.INFO)
+    root_logger = logging.getLogger()
+    root_logger.addHandler(handler)
+    root_logger.setLevel(logging.INFO)
+
+    # Apply the safe formatter to all existing root logger handlers (e.g. Uvicorn/stdout)
+    for existing_handler in root_logger.handlers:
+        existing_handler.setFormatter(formatter)
 
     # 4. Automatic FastAPI Instrumentation
     FastAPIInstrumentor.instrument_app(app, tracer_provider=tracer_provider)

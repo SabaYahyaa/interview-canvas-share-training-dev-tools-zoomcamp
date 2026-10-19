@@ -1,7 +1,6 @@
 import os
 import sys
 from pathlib import Path
-import importlib.util
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
@@ -15,16 +14,13 @@ from app.telemetry import setup_telemetry
 
 # Import responder app router
 # Find project root and locate responder.py dynamically
+# Add the container root directory (/app) to Python's module search path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-RESPONDER_PATH = PROJECT_ROOT / "incident_response" / "responder.py"
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.append(str(PROJECT_ROOT))
 
-if RESPONDER_PATH.exists():
-    spec = importlib.util.spec_from_file_location("responder", RESPONDER_PATH)
-    responder_module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(responder_module)
-    responder_app = responder_module.app
-else:
-    raise FileNotFoundError(f"Could not find responder script at {RESPONDER_PATH}")
+# Import the responder router
+from incident_response.responder import app as responder_app
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

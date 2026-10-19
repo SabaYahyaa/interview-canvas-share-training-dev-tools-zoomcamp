@@ -1,0 +1,14 @@
+{
+  "status": "firing",
+  "labels": {
+    "alertname": "HighServerLatency",
+    "service_name": "interview-canvas-backend-prod",
+    "severity": "critical"
+  },
+  "annotations": {
+    "summary": "p95 response time exceeded 1000ms",
+    "description": "High latency detected on production service interview-canvas-backend-prod."
+  },
+  "startsAt": "2026-10-19T10:45:00Z",
+  "generatorURL": "https://whitecantaloupe3594.grafana.net/alerting/grafana/xxx/view"
+}

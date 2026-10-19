@@ -19,6 +19,17 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 
+class SafeOTelFormatter(logging.Formatter):
+    """Custom formatter that guarantees otelTraceID and otelSpanID exist on every LogRecord."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        if not hasattr(record, "otelTraceID"):
+            record.otelTraceID = "0"
+        if not hasattr(record, "otelSpanID"):
+            record.otelSpanID = "0"
+        return super().format(record)
+
+
 def setup_telemetry(app: FastAPI, db_engine=None):
     """Configures OpenTelemetry for FastAPI, sending Traces (Tempo), Metrics
 

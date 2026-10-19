@@ -30,7 +30,7 @@ COPY --from=frontend-builder /app/frontend/dist ./static
 COPY backend/ ./
 
 # COPY THE INCIDENT RESPONDER DIRECTORY INTO THE CONTAINER
-COPY ../incident_response/ ./incident_response/
+COPY incident_response/ ./incident_response/
 
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

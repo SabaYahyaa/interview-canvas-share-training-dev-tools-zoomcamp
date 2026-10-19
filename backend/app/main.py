@@ -1,4 +1,6 @@
 import os
+import sys
+from pathlib import Path
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
@@ -10,6 +12,11 @@ from app.database import engine, init_db
 from app.routers import guest, sessions
 from app.telemetry import setup_telemetry
 
+# Import responder app router
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.append(str(PROJECT_ROOT))
+from incident_response.responder import app as responder_app
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -37,6 +44,7 @@ app.add_middleware(
 # Include API Routers
 app.include_router(sessions.router)
 app.include_router(guest.router)
+app.include_router(responder_app.router)
 
 # ==========================================
 # STATIC FILES & SPA FALLBACK

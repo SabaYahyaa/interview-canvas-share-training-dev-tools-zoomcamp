@@ -29,10 +29,14 @@ async def health_check():
     return {"status": "ok", "service": "incident-responder"}
 
 
-@app.post("/alerts")
+@app.api_route("/alerts", methods=["GET", "HEAD", "POST"])
 async def receive_alert(request: Request, background_tasks: BackgroundTasks):
-    """Webhook endpoint receiving Grafana alerts on POST /alerts (Port 8001)."""
-    # Parses the incoming HTTP request body sent by Grafana into a Python dictionary.
+    """Webhook endpoint receiving Grafana alerts on /alerts (Port 8001)."""
+    # 1. Handle Grafana / Render health check pings (GET / HEAD)
+    if request.method in ["GET", "HEAD"]:
+        return {"status": "ok", "message": "Alert webhook endpoint is active"}
+
+    # 2. Handle firing alert payloads (POST)
     payload = await request.json()
     alerts = payload.get("alerts", [])
 
@@ -43,10 +47,7 @@ async def receive_alert(request: Request, background_tasks: BackgroundTasks):
 
         print(f"[Responder] Firing alert received: {alertname}")
         
-        # Process in background task so POST /alerts responds immediately
-        # Offloads saving evidence and running the agent to an asynchronous background worker. 
-        # This guarantees POST /alerts responds immediately with an HTTP 200 to Grafana,
-        # so Grafana doesn't experience a connection timeout waiting for an AI agent to run.
+        # Offloads saving evidence and running the agent to an asynchronous background worker.
         background_tasks.add_task(process_alert_and_run_agent, incident_id, alert)
 
     return {"status": "alert_received", "processed": len(alerts)}

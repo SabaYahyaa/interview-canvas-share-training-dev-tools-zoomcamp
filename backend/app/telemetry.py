@@ -9,6 +9,7 @@ from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExp
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.metrics import MeterProvider
@@ -63,6 +64,9 @@ def setup_telemetry(app: FastAPI, db_engine=None):
     )
     logger_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
     set_logger_provider(logger_provider)
+
+    # Instrument Python logging so otelTraceID and otelSpanID are injected into LogRecords
+    LoggingInstrumentor().instrument(set_logging_format=False)
 
     # Attach OpenTelemetry Handler to Python's root logger
     handler = LoggingHandler(level=logging.INFO, logger_provider=logger_provider)

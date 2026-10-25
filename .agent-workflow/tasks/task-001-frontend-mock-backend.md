@@ -30,13 +30,12 @@ An alternative would have been to generate a similar frontend using AI-powered d
 
 The objective was to establish a frontend prototype that could run without the real backend or database before implementing the actual backend and database integration in subsequent training modules.
 
-The mock behavior is intended for frontend prototyping. It does not replace the real backend, persistent database storage, or multi-user synchronization implemented in later stages.
+The mock behavior is intended for frontend prototyping.
 
 ## 5. Dependencies
 
 - Alexey Grigorev's `interview-canvas-share` repository.
 - The frontend source copied from the cloned repository.
-- The existing project repository and its instructions.
 - Node.js and npm, compatible with the frontend's dependencies.
 - Codex and Cline with Google's Gemini model for AI-assisted code inspection and implementation.
 - The existing frontend package configuration and scripts.
@@ -69,4 +68,6 @@ If a criterion cannot be verified, mark it `NOT VERIFIED` and explain why. If a 
 - Connecting the frontend to PostgreSQL or another live database.
 - Implementing production authentication or authorization.
 - Implementing persistent storage or multi-user synchronization.
-- Implementing
+- Changes outside this task's scope.
+- Unrelated refactoring or architecture changes.
+- Claiming QA or PM approval without evidence.

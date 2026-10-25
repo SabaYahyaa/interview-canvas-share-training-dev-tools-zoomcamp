@@ -1,30 +1,231 @@
 # 🎨 System Design Interview Platform 🚀
 
-A browser-based collaborative workspace for conducting live system-design interviews. An interviewer creates a session and shares a link; candidates and other interviewers join and work together on the same infinite canvas in real time — placing architecture components, connecting them with arrows, adding labels and notes, and drawing freehand. Edits are broadcast over WebSockets so every participant sees updates immediately, and the final canvas is preserved for later review.
+A real-time collaborative workspace for conducting live system-design interviews.
+Interviewers create a session and share a link with candidates;
+participants work together on an infinite canvas—placing architecture components,
+drawing connections, and taking notes in real time.
+
+Edits are broadcast over WebSockets so every participant sees updates immediately, and the final canvas is preserved for later review.
+
+
+## 💡 Acknowledgement & Context
+
+- 🎓 **Training Context:** Built as part of hands-on practice following the **DataTalksClub LLMs & AI Engineering Zoomcamp** methodology.
+- 🎨 **Frontend Base Adoption Strategy:** To optimize time and avoid token consumption costs associated with repeated prompt failures when attempting full UI code generation via Lovable, the React/TypeScript frontend base was adopted from [Alexey Grigorev's interview-canvas-share repository](https://github.com/alexeygrigorev/interview-canvas-share/tree/main/frontend). This allowed full focus to be shifted toward backend architecture, database orchestration, full-stack OpenTelemetry observability, and automated incident response.
+- 🤖 **AI-Assisted Backend & Observability Development:** Developed using **Gemini** and **ChatGPT** for backend logic, pytest suites, OpenTelemetry integration, and incident responder webhook development. Local development experiments also used via **Cline with Ollama**.
+
+
+## 📖 User Guide
+
+For step-by-step instructions on creating an interview session, configuring interview details, and inviting candidates to the collaborative canvas, see the [User & Candidate Onboarding Guide](_docs/work_documentation_in_details/user_guide.md).
+
+> **Note:** The deployed application depends on a Render database. The database used for this demo may expire after its one-month availability period. If the database expires, the application may become unavailable or some features may stop working.
+
 
 
 ## 🌐 Live Application & Production Endpoints
 
-The application is deployed across multi-environment web services hosted on **Render** using container images published to **GitHub Container Registry (GHCR)**:
+The **Interview Canvas application** (as shown in the below figure) is deployed across multi-environment web services hosted on **Render** using container images published to **GitHub Container Registry (GHCR)**:
 
-* 🖥️ **Production Web App:** [https://interview-canvas-prod.onrender.com](https://interview-canvas-prod.onrender.com)
-* 📚 **Production API / Swagger Docs:** [https://interview-canvas-prod.onrender.com/docs](https://interview-canvas-prod.onrender.com/docs)
-* 🧪 **Dev Web App:** [https://interview-canvas-dev.onrender.com](https://interview-canvas-dev.onrender.com)
-* 📚 **Dev API / Swagger Docs:** [https://interview-canvas-dev.onrender.com/docs](https://interview-canvas-dev.onrender.com/docs)
-
+- 🖥️ **Production Web App:** [https://interview-canvas-prod.onrender.com](https://interview-canvas-prod.onrender.com)
+- 📚 **Production API Documentation:** [https://interview-canvas-prod.onrender.com/docs](https://interview-canvas-prod.onrender.com/docs)
+- 🚨 **Production Incident Responder Webhook:** [`/alerts`](https://interview-canvas-prod.onrender.com/alerts)
+- 🧪 **Development Web App:** [https://interview-canvas-dev.onrender.com](https://interview-canvas-dev.onrender.com)
+- 📚 **DevDevelopment API Documentation:** [https://interview-canvas-dev.onrender.com/docs](https://interview-canvas-dev.onrender.com/docs)
 > **Note:** Running on free Render instances, the services may sleep after periods of inactivity. Initial cold-start requests may take ~30–50 seconds to wake up an instance.
 
+![Step 3 - Dashboard View](_docs/work_documentation_in_details/assets/live_canvas.png)
 
 
-## 💡 Acknowledgments & Context
+## ✨ Key Features
 
-* 🎓 **Training Context:** Built as part of hands-on practice following the **DataTalksClub LLMs & AI Engineering Zoomcamp** methodology.
-* 🎨 **Frontend Base & OpenAPI Contract:** Adapted from [Alexey Grigorev's interview-canvas-share repository](https://github.com/alexeygrigorev/interview-canvas-share/tree/main/frontend). The frontend UI was initially generated using Lovable and adopted here to avoid token consumption costs during generation. Special thanks to Alexey Grigorev for sharing the base UI and API contract.
-* 🤖 **AI-Assisted Development:** Developed using **Gemini** and **ChatGPT** for backend logic, unit test creation, and CI/CD workflow automation, with local task management executed via **Cline with Ollama**. Every generated component was manually reviewed, integrated, and verified against quality gates.
+- 🎨 **Real-Time Collaboration:** Interviewers and candidates work together on a shared canvas.
+- 🔄 **WebSocket Communication:** Canvas updates are broadcast to connected participants.
+- 💾 **Persistent Storage:** Interview sessions and canvas data are stored in PostgreSQL.
+- 📊 **Full-Stack Observability:** OpenTelemetry collects telemetry for monitoring in Grafana Cloud.
+- 🚨 **Automated Incident Response:** Grafana alerts are sent to the application's incident responder and email.
+- 🚀 **Containerized Deployment:** Development and production environments are deployed on Render using GHCR images.
+
+
+## 🏗️ High-Level System Architecture
+
+The platform uses a React frontend, a FastAPI backend, PostgreSQL for persistent storage, and WebSockets for real-time collaboration. OpenTelemetry sends observability data to Grafana Cloud, where metrics, logs, and traces can be monitored. Grafana alerts can trigger the incident responder through a webhook.
+
+```text
+[ Browser Canvas (React + Vite) ]
+                 |
+        REST API + WebSockets
+                 |
+                 v
+       [ FastAPI Backend ]
+                 |
+       +---------+----------+
+       |         |          |
+       v         v          v
+ [PostgreSQL] [OpenTelemetry] [Incident Responder]
+                   |                 ^
+                   v                 |
+             [Grafana Cloud] --------+
+              Metrics, Logs,
+                 and Traces
+               Alerts Webhook
+```
+
+## 🚨 Incident Responder Service
+
+The incident responder is a separate FastAPI service implemented in incident_response/responder.py. It receives Grafana alert payloads through the /alerts webhook endpoint, saves the alert data as JSON evidence, and schedules background processing. The service also includes a placeholder for triggering an AI coding assistant to support incident response; automated AI execution is not yet implemented.
+
+
+## 🚀 Deployment & Environments Architecture
+
+This project uses a multi-environment CI/CD pipeline hosted on **Render** and backed by **GitHub Container Registry (GHCR)** for immutable Docker image storage.
+
+### Database Isolation Strategy
+
+To fit within Render's single active free-tier database limit, both environments share one PostgreSQL instance (`interview-postgres`). Data isolation is handled using separate PostgreSQL schemas:
+
+* **Production Environment:** Uses the `prod` schema (`SDIP_DATABASE_URL`).
+* **Dev Environment:** Uses the `dev` schema (`SDIP_DATABASE_URL` with `?options=-csearch_path=dev` appended).
+
+All Dev queries, writes, and migrations run strictly inside the `dev` schema, keeping production data completely untouched.
 
 ---
 
-## 🚀 AI-Driven App Blueprint: From Fast Prototype to Production CI/CD
+### Environment Breakdown
+
+| Environment | Web Service Name | Database Instance | Schema Isolation | Trigger Strategy |
+| :--- | :--- | :--- | :--- | :--- |
+| **Dev** | `interview-canvas-dev` | `interview-postgres` | `dev` (`?options=-csearch_path=dev`) | **Automated:** Pushes to `main` build `ghcr.io/<owner>/<repo>:<YYYY-MM-DD-SHA>` and deploy to Dev. |
+| **Production** | `interview-canvas-app` | `interview-postgres` | `prod` (default) | **Manual:** Triggered via `Promote Image to Production` workflow in GitHub Actions. |
+
+---
+
+### Deployment Pipeline Procedures
+
+#### 1. Automated Dev Deployment (Git Push)
+
+```mermaid
+flowchart TD
+    User([Developer / User]) -->|1. git push main| GHRepo[GitHub Repository]
+    GHRepo -->|2. Triggers deploy.yml| GHRunner[GitHub Actions Runner]
+    
+    subgraph GHActionsDev [GitHub Actions: Dev Workflow]
+        GHRunner -->|3. Build & Push Image| GHCR[(GitHub Container Registry)]
+        GHRunner -->|4. Trigger RENDER_DEV_DEPLOY_HOOK| RenderDev[Render Service: interview-canvas-dev]
+    end
+    
+    RenderDev -->|5. Pull new image| GHCR
+    RenderDev -->|6. Start Container| DevContainer[Live Dev Instance]
+    DevContainer -->|7. Connect via SDIP_DATABASE_URL| DB[(PostgreSQL: interview-postgres)]
+    
+    subgraph SchemaDev [Database Isolation]
+        DB -->|?options=-csearch_path=dev| DevSchema[dev Schema]
+    end
+```
+#### 2. Manual Production Promotion (Workflow Dispatch)
+```mermaid
+flowchart TD
+    User([Developer / User]) -->|1. Select 'Promote Image to Production' & input tag| GHUI[GitHub Actions UI]
+    GHUI -->|2. Triggers promote-prod.yml| GHRunnerProd[GitHub Actions Runner]
+    
+    subgraph GHActionsProd [GitHub Actions: Prod Promotion]
+        GHRunnerProd -->|3. Trigger RENDER_DEPLOY_HOOK_URL| RenderProd[Render Service: interview-canvas-app]
+    end
+    
+    RenderProd -->|4. Pull specified image tag| GHCR[(GitHub Container Registry)]
+    RenderProd -->|5. Start Container| ProdContainer[Live Production Instance]
+    ProdContainer -->|6. Connect via SDIP_DATABASE_URL| DB[(PostgreSQL: interview-postgres)]
+    
+    subgraph SchemaProd [Database Isolation]
+        DB -->|Default Search Path| ProdSchema[prod Schema]
+    end
+```
+
+
+
+## 💻 Local Setup & Quick Start
+
+Follow these steps to run the Interview Canvas application locally.
+
+## 📋 Prerequisites
+
+- **Operating System:** Ubuntu / Linux, or WSL2 on Windows.
+- **Docker & Docker Compose:** Installed and running.
+- **Node.js & npm:** Optional; needed only for direct frontend development.
+- **Python 3.12 & Poetry:** Optional; needed for backend development outside Docker.
+
+
+
+## 🚀 Running the Project Locally
+
+#### Step 1: Clone the Repository
+
+```bash
+git clone https://github.com/SabaYahyaa/interview-canvas-share-training-dev-tools-zoomcamp.git
+cd interview-canvas-share-training-dev-tools-zoomcamp
+```
+
+#### Step 2: Choose How to Run the Application
+
+**Option 1: Start the Complete Stack (Recommended)**
+
+Builds and starts the application and PostgreSQL database using Docker Compose.
+
+```bash
+docker compose up --build
+```
+
+**Option 2: Start the Database and Application Separately**
+
+First, start PostgreSQL:
+
+```bash
+docker compose up -d db
+```
+
+Build the application image:
+
+```bash
+docker build -t interviewer-canvas-app .
+```
+
+Run the application container:
+
+```bash
+docker run -p 8000:8000 \
+  --network interview-canvas-share-training-dev-tools-zoomcamp_default \
+  -e DATABASE_URL="postgresql://postgres:postgres@db:5432/interviewer_db" \
+  interviewer-canvas-app
+```
+
+#### Step 3: Access the Application
+
+- **Frontend:** [http://localhost:8000](http://localhost:8000)
+- **Backend API Documentation (Swagger):** [http://localhost:8000/docs](http://localhost:8000/docs)
+
+
+## 🧪 Automated End-to-End Testing
+
+The project provides a Makefile target for running automated end-to-end tests with Playwright.
+
+**Step 1: Stop containers and remove volumes**
+
+> Warning: This command removes Docker Compose volumes, which may delete local database data.
+
+```bash
+docker compose down -v
+```
+
+**Step 2: Run the E2E tests**
+
+```bash
+make run-e2e
+```
+
+The E2E workflow starts the required services, waits for database health checks, and executes the Playwright tests.
+
+
+## 🚀 AI-Driven App Blueprint (Modules 1–4): From Fast Prototype to Production CI/CD
 
 This repository serves as a repeatable, step-by-step framework for rapidly prototyping, containerizing, testing, and deploying production-ready web applications using AI tools and automated pipelines.
 
@@ -157,7 +358,7 @@ In **Module 3**, we used Ubuntu on Windows WSL to package the entire application
 
 
 
-## 4. 🚀 Automated CI/CD, Container Registry & Multi-Environment Deployments (Module 4)
+### 4. 🚀 Automated CI/CD, Container Registry & Multi-Environment Deployments (Module 4)
 
 In **Module 4**, we replaced manual Render triggers with a fully automated CI/CD pipeline using GitHub Actions,
 set up container image tagging, and configured dual development (interview-canvas-dev) and production (interview-canvas-prod) web services on Render with database schema isolation,
@@ -196,11 +397,14 @@ and integrated full-stack OpenTelemetry monitoring with Grafana Cloud (Prometheu
    - **Regex Pattern:** `trace_id=(\w+)`
    - **Internal Link:** Pointed directly to the Grafana Cloud Tempo trace data source (`grafanacloud-*-traces`) passing `${__value.raw}` as the Trace ID.
 
-7. **Proactive Email Alerting:**
-   - Configured evaluation rules in Grafana Alerting under the `fastapi-monitoring` group with a 1-minute evaluation interval and a 2-minute pending period (for: `2m`).
-   - **5xx Error Rate Alert:** Triggers when 5xx server responses exceed threshold.
-   - **High Latency Alert:** Triggers when request duration exceeds `1s`.
-   - **Contact Point:** Integrated email notifications to deliver instant alert state transitions directly to the team inbox.
+7. **Grafana Alerting & Automated Incident Response**
+   - Alert Evaluation: Configured Grafana alert rules under the fastapi-monitoring group, with a 1-minute evaluation interval and a 2-minute pending period.
+   - Error Alert: Monitors HTTP 4xx and 5xx responses.
+   - High Latency Alert: Monitors the p99 HTTP request duration against the configured threshold.
+   - Email Notifications: Configured a Grafana email contact point to notify the team about alert state changes.
+   - Incident Responder Webhook: Configured Grafana to send alert payloads to the incident responder service deployed on Render through the /alerts endpoint.
+   - Evidence Collection: The FastAPI incident responder, implemented in incident_response/responder.py, accepts incoming alerts and schedules background processing to save each alert payload as a JSON evidence file in the incidents/ directory.
+   - AI Agent Integration: The responder includes a placeholder for triggering an AI coding assistant in headless mode. Actual AI agent execution is not yet implemented since Cline with ollama model does not work well.
 
 ### Checklist for Next Time:
 - [ ] Configure a GitHub Actions workflow (`.github/workflows/deploy.yaml`) structured into 3 distinct sequential jobs:
@@ -224,174 +428,12 @@ and integrated full-stack OpenTelemetry monitoring with Grafana Cloud (Prometheu
 
 ---
 
+## 📚 Detailed Work Documentation Index
 
+1. **For detailed instructions on Grafana Cloud setup, OpenTelemetry instrumentation,
+dashboard configuration, log-to-trace correlation, and alerting**, see the
+[Production Observability & Grafana Setup Guide](_docs/work_documentation_in_details/telemetry_and_grafana_setup.md).
 
+The Observability FastAPI interview-canvas-prod Grafana dashboard for the ´interview-canvas-prod´ service is shown below:
 
-## 🚀 Deployment & Environments Architecture
-
-This project uses a multi-environment CI/CD pipeline hosted on **Render** and backed by **GitHub Container Registry (GHCR)** for immutable Docker image storage.
-
-### Database Isolation Strategy
-
-To fit within Render's single active free-tier database limit, both environments share one PostgreSQL instance (`interview-postgres`). Data isolation is handled using separate PostgreSQL schemas:
-
-* **Production Environment:** Uses the `public` schema (`SDIP_DATABASE_URL`).
-* **Dev Environment:** Uses the `dev` schema (`SDIP_DATABASE_URL` with `?options=-csearch_path=dev` appended).
-
-All Dev queries, writes, and migrations run strictly inside the `dev` schema, keeping production data completely untouched.
-
----
-
-### Environment Breakdown
-
-| Environment | Web Service Name | Database Instance | Schema Isolation | Trigger Strategy |
-| :--- | :--- | :--- | :--- | :--- |
-| **Dev** | `interviewer-canvas-dev` | `interview-postgres` | `dev` (`?options=-csearch_path=dev`) | **Automated:** Pushes to `main` build `ghcr.io/<owner>/<repo>:<YYYY-MM-DD-SHA>` and deploy to Dev. |
-| **Production** | `interview-canvas-app` | `interview-postgres` | `public` (default) | **Manual:** Triggered via `Promote Image to Production` workflow in GitHub Actions. |
-
----
-
-### Deployment Pipeline Procedures
-
-#### 1. Automated Dev Deployment (Git Push)
-
-```mermaid
-flowchart TD
-    User([Developer / User]) -->|1. git push main| GHRepo[GitHub Repository]
-    GHRepo -->|2. Triggers deploy.yml| GHRunner[GitHub Actions Runner]
-    
-    subgraph GHActionsDev [GitHub Actions: Dev Workflow]
-        GHRunner -->|3. Build & Push Image| GHCR[(GitHub Container Registry)]
-        GHRunner -->|4. Trigger RENDER_DEV_DEPLOY_HOOK| RenderDev[Render Service: interviewer-canvas-dev]
-    end
-    
-    RenderDev -->|5. Pull new image| GHCR
-    RenderDev -->|6. Start Container| DevContainer[Live Dev Instance]
-    DevContainer -->|7. Connect via SDIP_DATABASE_URL| DB[(PostgreSQL: interview-postgres)]
-    
-    subgraph SchemaDev [Database Isolation]
-        DB -->|?options=-csearch_path=dev| DevSchema[dev Schema]
-    end
-```
-#### 2. Manual Production Promotion (Workflow Dispatch)
-```mermaid
-flowchart TD
-    User([Developer / User]) -->|1. Select 'Promote Image to Production' & input tag| GHUI[GitHub Actions UI]
-    GHUI -->|2. Triggers promote-prod.yml| GHRunnerProd[GitHub Actions Runner]
-    
-    subgraph GHActionsProd [GitHub Actions: Prod Promotion]
-        GHRunnerProd -->|3. Trigger RENDER_DEPLOY_HOOK_URL| RenderProd[Render Service: interview-canvas-app]
-    end
-    
-    RenderProd -->|4. Pull specified image tag| GHCR[(GitHub Container Registry)]
-    RenderProd -->|5. Start Container| ProdContainer[Live Production Instance]
-    ProdContainer -->|6. Connect via SDIP_DATABASE_URL| DB[(PostgreSQL: interview-postgres)]
-    
-    subgraph SchemaProd [Database Isolation]
-        DB -->|Default Search Path| PublicSchema[public Schema]
-    end
-```
-
-
-
-
-
-
-## 💻 Local Setup & Quick Start
-
-Follow these simple steps to get the application up and running locally.
-
-### 📋 Prerequisites
-
-* **Operating System:** Ubuntu / Linux (or WSL2 on Windows).
-* **Docker & Docker Compose:** Installed and running.
-* **Node.js & npm:** (Optional, only needed if modifying the frontend directly).
-* **Python 3.12 & Poetry:** (Optional, only needed if developing backend code outside Docker).
-
----
-
-### 🚀 Running the Project Locally
-
-```sh
-# Step 1: Clone the Repository
-git clone [https://github.com/SabaYahyaa/interview-canvas-share-training-dev-tools-zoomcamp.git](https://github.com/SabaYahyaa/interview-canvas-share-training-dev-tools-zoomcamp.git)
-cd interview-canvas-share-training-dev-tools-zoomcamp
-
-# Step 2: Choose One of the Two Ways to Run the App Locally:
-
-# --- Way 1: One-Command Stack Execution (Recommended) ---
-# Builds and launches the PostgreSQL database and application container together:
-docker compose up --build
-
-# --- Way 2: Granular Database & Web Container Execution ---
-# Alternatively, start the database first and build/run the application container manually:
-# 1. Start the PostgreSQL database service in detached mode:
-docker compose up -d db
-
-# 2. Build the web application Docker image:
-docker build -t interviewer-canvas-app .
-
-# 3. Run the web container attached to the Docker Compose network:
-docker run -p 8000:8000 \
-  --network interview-canvas-share-training-dev-tools-zoomcamp_default \
-  -e DATABASE_URL="postgresql://postgres:postgres@db:5432/interviewer_db" \
-  interviewer-canvas-app
-
-
-# Step 3: Access Endpoints
-# Frontend Web App: http://localhost:8000
-# Backend API Docs (Swagger): http://localhost:8000/docs
-
-
-```
-
-### 🧪 Steps for Automated End-to-End Testing Locally
-
-```sh
-# Step 1: Stop any currently running Docker containers and volumes
-docker compose down -v
-
-# Step 2: Run the automated E2E tests via Makefile
-# Spins up the stack, waits for database healthchecks, and executes Playwright tests
-make run-e2e
-```
-
-### 📊 Full-Stack Observability & Grafana Production Dashboard Setup
-
-The step-by-step configuration for monitoring the production environment in FastAPI (**interview-canvas-prod**) using OpenTelemetry (OTEL) instrumentation (**app/telemetry.py**), Prometheus metrics, Loki log streams, and Tempo trace execution waterfalls in Grafana Cloud.
-
-
-```sh
-# Step 1: Grafana Account & Stack Instance Creation
-   - Sign Up & Launch Instance
-      1. Navigate to https://grafana.com/products/cloud/ and log in or create a free account.
-      2. From the Grafana Cloud portal, launch your generated stack instance (e.g., whitecantaloupe3594).
-      3. Grafana Instance URL: https://whitecantaloupe3594.grafana.net
-
-   - Retrieve Instance ID & OTLP Credentials
-      1. In your Grafana Cloud stack, navigate to Connections -> Add new connection -> OpenTelemetry (OTLP)
-      2.  Locate your unique numeric Instance ID (User Number) (e.g., 1023456) and generate an API Key / Access Token, or go to https://grafana.com/orgs/ -> stack instance (e.g., whitecantaloupe3594) -> find OpenTelemetry -> click Configuration -> get the ID and create a token.
-
-# Step 2: Environment Variable Configuration
-Configure the following environment variables in your Render Production service deployment:
-   - Set the OTLP Exporter Endpoint (Grafana Cloud Gateway), OTEL_EXPORTER_OTLP_ENDPOINT
-   - Set Authorization Header KEY, OTEL_EXPORTER_OTLP_HEADERS_KEY  <Your-Base64-Grafana-Token>
-   - Define Service Name, OTEL_SERVICE_NAME to isolate Production from dev, dev environment uses: interview-canvas-backend-dev, and the prod environment uses interview-canvas-backend-prod
-   - Set Grafana user ID, OTEL_EXPORTER_OTLP_HEADERS_USER
-
-# Step 3: Production Dashboard Setup
-- Access Grafana Cloud Instance, navigate to https://whitecantaloupe3594.grafana.net and log in
-- Create a New Dashboard, click Dashboards -> New -> New Dashboard and name it "Observability FastAPI interview-canvas-prod"
-- Configure Prometheus Request Rate & Latency Metrics
-   - Inside your dashboard, click + Add -> Visualization.
-   - Select your Prometheus data source (e.g., grafanacloud-whitecantaloupe3594-prom).
-   - Under the Query tab, paste this PromQL query: sum(rate(http_server_duration_milliseconds_count{service_name="interview-canvas-backend-prod"}[5m]))
-
-- Configure Loki Production Log Stream
-{service_name="interview-canvas-backend-prod"}
-
-- Configure Tempo Traces Waterfall
-{ resource.service.name = "interview-canvas-backend-prod" }
-
-
-```
+![grafana dashboard](_docs/work_documentation_in_details/assets/grafana_dashboard.png)

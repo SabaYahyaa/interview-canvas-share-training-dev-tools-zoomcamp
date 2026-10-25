@@ -7,6 +7,15 @@ drawing connections, and taking notes in real time.
 
 Edits are broadcast over WebSockets so every participant sees updates immediately, and the final canvas is preserved for later review.
 
+##  🔀 Evolution of the AI-Assisted Development Workflow
+
+This project was developed with AI assistance. The tools and workflow changed during development as different approaches were tested.
+
+-  **Initial stage — Task 1:** Used Loop Engineer with Codex, followed by Cline with Google's Gemini model, to establish the frontend prototype.
+
+- **Subsequent development — Remaining tasks:** Relied primarily on ChatGPT and Gemini for implementation, troubleshooting, documentation, and development decisions. Loop Engineer was not used for the remaining development tasks.
+
+- **Reason for the change:** Cline did not perform well with the local Ollama models tested. As a result, the workflow shifted toward ChatGPT and Gemini, which better supported the subsequent development work.
 
 ## 💡 Acknowledgement & Context
 
@@ -230,18 +239,32 @@ The E2E workflow starts the required services, waits for database health checks,
 This repository serves as a repeatable, step-by-step framework for rapidly prototyping, containerizing, testing, and deploying production-ready web applications using AI tools and automated pipelines.
 
 
-
 ### 1. 🎨 Frontend Setup & Mock Backend Prototyping (Module 1)
 
-Following the **Module 1 training workflow** on AI-assisted application prototyping, this initial phase focuses on establishing a functional user interface using prompt-to-code tools before writing any server-side logic. Decoupling the frontend allows for immediate visual validation and rapid UI/UX iteration.
-#### What We Did:
-1. **Frontend UI Generation (Lovable / Bolt.new):**
-   - Generated the full React/TypeScript user interface using **Lovable** (equivalent prompt-to-app tools like **Bolt.new** or **v0** follow the identical workflow).
-   - Exported the generated source code into the repository workspace as a clean, stand-alone frontend.
+#### What We Did
 
-2. **In-Memory Mock Backend Integration:**
-   - Configured frontend components to use local mock state and static fallback objects instead of live database calls.
-   - Enabled immediate visual verification of core UI interactions—placing canvas shapes, moving arrows, adding notes—without waiting for server implementation.
+1. **Obtained the Frontend**
+   - Cloned Alexey Grigorev's [`interview-canvas-share`](https://github.com/alexeygrigorev/interview-canvas-share) repository.
+   - Copied only the frontend into our own project repository, reusing the existing interface.
+
+2. **Adapted the Frontend with Codex**
+   - Used Codex to inspect and modify the copied frontend.
+   - Replaced dependencies on the real backend with mock data, local state, or mock handlers where necessary.
+   - Made the frontend runnable without requiring a working backend or database.
+
+3. **Continued with Cline and Gemini**
+   - Switched to Cline with Google's Gemini model as the AI coding assistant.
+   - Continued developing and adapting the frontend prototype with mock backend behavior.
+
+#### Alternative: Generate a Frontend with an AI Tool
+
+Instead of reusing an existing frontend, we could generate a similar interface using AI-powered development tools such as [Bolt](https://bolt.new/), [v0](https://v0.dev/), or [Lovable](https://lovable.dev/).
+
+We chose to reuse an existing frontend to reduce reliance on limited free credits and avoid generating the interface from scratch. This allowed us to focus on adapting the application and then implementing the real backend in the subsequent module.
+
+#### Outcome
+
+A working frontend prototype that can run independently of the real backend, ready for the next stage of development: implementing and integrating the real backend and database.
 
 #### Repeatable Blueprint Checklist for Future Projects:
 - [ ] Prompt an AI generator (**Lovable**, **Bolt.new**) to output the base UI layout and client interaction handlers.
@@ -253,6 +276,7 @@ Following the **Module 1 training workflow** on AI-assisted application prototyp
   npm install
   npm run build
   ```
+
 
 ### 2. ⚙️ Building the Backend & Connecting the App (Module 2)
 

@@ -12,7 +12,7 @@ Edits are broadcast over WebSockets so every participant sees updates immediatel
 
 - 🎓 **Training Context:** Built as part of hands-on practice following the **DataTalksClub LLMs & AI Engineering Zoomcamp** methodology.
 - 🎨 **Frontend Base Adoption Strategy:** To optimize time and avoid token consumption costs associated with repeated prompt failures when attempting full UI code generation via Lovable, the React/TypeScript frontend base was adopted from [Alexey Grigorev's interview-canvas-share repository](https://github.com/alexeygrigorev/interview-canvas-share/tree/main/frontend). This allowed full focus to be shifted toward backend architecture, database orchestration, full-stack OpenTelemetry observability, and automated incident response.
-- 🤖 **AI-Assisted Backend & Observability Development:** Developed using **Gemini** and **ChatGPT** for backend logic, pytest suites, OpenTelemetry integration, and incident responder webhook development. Local development experiments also used via **Cline with Ollama**.
+- 🤖 **AI-Assisted Backend & Observability Development:** Developed using **Gemini** and **ChatGPT** for backend logic, pytest suites, OpenTelemetry integration, and incident responder webhook development. Local development experiments also used via **Cline with Ollama provider (llama3.1:8b model, Default: 32768 model context window, and 600000 request timeout (ms)), or Cline with Google Gemini provider (gemini-2.5-flash model, and medium reasoing effor)**.
 
 
 ## 📖 User Guide

@@ -9,13 +9,43 @@ Edits are broadcast over WebSockets so every participant sees updates immediatel
 
 ##  🔀 Evolution of the AI-Assisted Development Workflow
 
-This project was developed with AI assistance. The tools and workflow changed during development as different approaches were tested.
+This project was developed incrementally with the help of AI coding assistants. The development workflow evolved as different tools and approaches were tested throughout the project.
 
--  **Initial stage — Task 1:** Used Loop Engineer with Codex, followed by Cline with Google's Gemini model, to establish the frontend prototype.
+- **Initial Stage — Frontend Prototyping with Loop Engineer**
 
-- **Subsequent development — Remaining tasks:** Relied primarily on ChatGPT and Gemini for implementation, troubleshooting, documentation, and development decisions. Loop Engineer was not used for the remaining development tasks.
+   For the initial frontend task, **Loop Engineer** was used to support the development workflow.
 
-- **Reason for the change:** Cline did not perform well with the local Ollama models tested. As a result, the workflow shifted toward ChatGPT and Gemini, which better supported the subsequent development work.
+   - **Frontend reuse:** Copied only the React/TypeScript frontend from Alexey Grigorev's interview-canvas-share repository into this project's repository.
+
+   - **Initial adaptation with Codex:** Inspected and adapted the copied frontend, replacing backend-dependent functionality with mock data, local state, or mock handlers where necessary.
+
+   - **Continued development with Cline and Gemini:** Continued adapting and testing the frontend prototype using Cline with Google's Gemini model.
+
+   Loop Engineer was used during this initial frontend prototyping stage, first with Codex and subsequently with Cline and Gemini. The objective was to establish a working frontend prototype before implementing the real backend and database integration.
+
+   Reusing an existing frontend also reduced the need to generate the interface from scratch and helped conserve limited free AI-tool credits. Alternative approaches could have included generating a frontend using tools such as Lovable, Bolt.new, or v0.
+
+- **Subsequent Stages — Backend, Testing, Deployment, and Observability**
+
+   For the remaining development tasks, the workflow shifted primarily to **ChatGPT and Gemini** for implementation, troubleshooting, testing, documentation, and development decisions.
+
+   Loop Engineer was not used for these subsequent tasks. Experiments with Cline and local Ollama models did not provide sufficiently reliable results for the remaining development work, so a different approach was adopted.
+
+- **Lessons Learned and Future Workflow**
+
+   This project demonstrates that an AI-assisted development workflow may need to evolve as task complexity and the capabilities of available tools change.
+
+   The next step is to document the development process as a reusable, task-based workflow. Each task will define its objective, dependencies, acceptance criteria, implementation steps, validation requirements, and expected deliverables.
+
+   The intended workflow separates responsibilities between three roles:
+
+   - **Project Manager (PM):** Defines and reviews tasks, checks requirements, and approves completed work.
+
+   - **Software Engineer:** Implements the approved task within its defined scope.
+
+   - **QA Engineer:** Independently verifies acceptance criteria and reports validation results.
+
+   The workflow is intended to make task execution more consistent, traceable, and verifiable. It is a framework for documenting and reusing the development process, **not an instruction to rebuild the already completed application**.
 
 ## 💡 Acknowledgement & Context
 

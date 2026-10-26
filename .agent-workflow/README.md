@@ -124,7 +124,7 @@ Update the status to reflect the actual task state. A Software Engineer's report
 - The QA Engineer owns the QA verdict; the PM owns the final acceptance decision.
 - A `FAIL` verdict triggers correction or investigation, not an automatic change to the task requirements.
 - The task specification must remain consistent with the requirements approved by the user.
-
+- If a required criterion cannot be verified, QA must report the overall verdict as FAIL and explain the missing evidence or testing limitation.
 ## 8. Task Records and Traceability
 
 Each task specification should provide a record of:
@@ -155,4 +155,29 @@ Keep the workflow conventions reusable while ensuring that each task reflects th
 
 - [Project specification](../spec.md)
 - [General agent instructions](../AGENTS.md)
-- [Task template](templates/task
+- [Task template](templates/task-template.md)
+
+## 11. Task inventory
+The following inventory lists the tasks prepared for this project. Task status and completion must be determined from the individual task records and their validation evidence, not from their presence in this list.
+- Module 1 — Frontend setup and mock-backend prototyping:
+    - `TASK-1-1` Adopt the Existing Frontend
+    - `TASK-1-2` Replace Backend Dependencies with Mock Behavior
+    - `TASK-1-3` Fix the Frontend and Run It Locally
+- Module 2 — Backend development and database integration:
+    - `TASK-2-1` Implement the FastAPI Backend
+    - `TASK-2-2` Introduce SQLAlchemy and SQLite
+    - `TASK-2-3` Migrate to PostgreSQL
+    - `TASK-2-4` Add Automated Backend Tests and Makefile Commands
+- Module 3 — Containerization and automated testing:
+    - `TASK-3-1` Create the Docker Image
+    - `TASK-3-2` Orchestrate the Application with Docker Compose
+    - `TASK-3-3` Implement Automated End-to-End Tests
+    - `TASK-3-4` Integrate Automated Checks into CI/CD
+- Module 4 — Production workflow, observability, and incident response:
+    - `TASK-4-1` Configure Development and Production Services
+    - `TASK-4-2` Automate Image Publishing and Deployment
+    - `TASK-4-3` Isolate Development and Production Database Data
+    - `TASK-4-4` Instrument FastAPI with OpenTelemetry
+    - `TASK-4-5` Build Grafana Dashboards
+    - `TASK-4-6` Configure Grafana Alerting
+    - `TASK-4-7` Implement the Incident Responder Service

@@ -82,7 +82,7 @@ Review the QA report and its supporting evidence.
 - If QA reports `FAIL`, return the task to the Software Engineer for correction and subsequent retesting.
 - If QA reports `PASS`, review the evidence and determine whether all required conditions for acceptance are satisfied.
 
-The PM must not treat a task as passing merely because the Software Engineer reports success.
+The PM must ensure that the Software Engineer and QA Engineer work against the same approved task specification.
 
 ### Step 6: Approve or return the task
 

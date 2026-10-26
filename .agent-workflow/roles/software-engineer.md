@@ -191,5 +191,9 @@ The engineer's assessment of acceptance criteria is not a substitute for indepen
 ## 9. Handoff
 
 - **From the PM:** Receive an approved task specification and its constraints.
+
 - **To the PM:** Submit the implementation report, validation results, and any blockers or proposed requirement changes.
-- **To the QA Engineer
+
+- **To the QA Engineer:** Provide the implementation report, changed files, validation results, and any evidence needed to verify the acceptance criteria, through the agreed workflow.
+
+- **Back to the Software Engineer:** Receive QA findings through the PM and correct implementation defects before submitting them for retesting.

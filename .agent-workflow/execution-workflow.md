@@ -12,8 +12,8 @@ Follow this workflow whenever the user asks to execute a task.
 2. Have the Project Manager check that the task is sufficiently defined and within scope.
 3. Have the Software Engineer implement the approved task.
 4. Have the QA Engineer independently verify every acceptance criterion.
-5. If QA finds failures, report them and have the Software Engineer fix issues within the approved scope. Rerun QA afterward.
-6. Repeat verification until all criteria pass or a blocker requires the user's decision.
+5. If QA finds failures or reports criteria as NOT VERIFIED, report the findings and have the Software Engineer address implementation defects or help resolve missing evidence and testing blockers within the approved scope. Rerun QA afterward.
+6. Repeat verification until every required criterion passes or a blocker requires clarification or a decision from the user. Do not treat unverified criteria as passed.
 7. Have the Project Manager review the final reports and approve the task only when all workflow requirements are satisfied.
 
 Do not rebuild functionality that is already implemented. Do not change acceptance criteria or expand scope without the user's approval.

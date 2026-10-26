@@ -22,6 +22,7 @@ if str(PROJECT_ROOT) not in sys.path:
 # Import the responder router
 from incident_response.responder import app as responder_app
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Runs automatically when container starts
